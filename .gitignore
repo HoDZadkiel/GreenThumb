@@ -1,0 +1,32 @@
+# 機密
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+credentials.json
+
+# Node
+node_modules/
+dist/
+build/
+.next/
+.nuxt/
+coverage/
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 編輯器
+.vscode/
+.idea/
+*.swp
+
+# Claude Code 本機設定
+.claude/settings.local.json
