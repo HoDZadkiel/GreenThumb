@@ -1,4 +1,6 @@
--- ========== ?�用 ==========
+-- GreenThumb MVP schema. See docs/database-schema.md.
+
+-- ========== 共用 ==========
 create or replace function public.set_updated_at() returns trigger
 language plpgsql as $$
 begin
@@ -29,14 +31,15 @@ language sql stable security definer set search_path = public as $$
   );
 $$;
 
--- 註�??�自?�建�?profile；username ?�設??user_ ?��? id ?��??��? 15 碼�?總長 20，符?�格式�??��?，�?後由使用?�修??create or replace function public.handle_new_user() returns trigger
+-- 註冊時自動建立 profile；username 預設為 user_ 加上 id 雜湊的前 15 碼（總長 20，符合格式上限），之後由使用者修改
+create or replace function public.handle_new_user() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
   insert into public.profiles (id, username, display_name)
   values (
     new.id,
     'user_' || substr(md5(new.id::text), 1, 15),
-    coalesce(new.raw_user_meta_data->>'name', '?��???)
+    coalesce(new.raw_user_meta_data->>'name', '新會員')
   );
   return new;
 end $$;
@@ -128,17 +131,19 @@ create table public.replies (
   deleted_at      timestamptz,
   created_at      timestamptz not null default now(),
   updated_at      timestamptz not null default now(),
-  unique (id, post_id)  -- �?posts.accepted_reply_id ?��??��??��???);
+  unique (id, post_id)  -- 供 posts.accepted_reply_id 的複合外鍵參照
+);
 create index replies_post_idx on public.replies (post_id, created_at);
 create trigger replies_updated_at before update on public.replies
   for each row execute function public.set_updated_at();
 
--- ?�佳解答�??�是?��??��?底�??��?覆�??��?被刪?�只清�? accepted_reply_id（PG15+ 語�?�?alter table public.posts
+-- 最佳解答必須是這篇文章底下的回覆；回覆被刪時只清掉 accepted_reply_id（PG15+ 語法）
+alter table public.posts
   add constraint posts_accepted_reply_fk
   foreign key (accepted_reply_id, id) references public.replies (id, post_id)
   on delete set null (accepted_reply_id);
 
--- ?��??��??�更?��?章�??��??��??�後活?��??��?軟刪?��????覆數，避?��?層跳?��?
+-- 新增回覆時更新文章的回覆數與最後活動時間（軟刪除不扣回覆數，避免樓層跳號）
 create or replace function public.bump_post_on_reply() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
@@ -204,7 +209,8 @@ create table public.images (
   post_id      bigint references public.posts(id) on delete cascade,
   reply_id     bigint references public.replies(id) on delete cascade,
   created_at   timestamptz not null default now(),
-  -- 上傳後�??�送出?�兩?�都??null；送出後只?��??�其中�???  check (post_id is null or reply_id is null)
+  -- 上傳後尚未送出時兩者都是 null；送出後只能掛在其中一個
+  check (post_id is null or reply_id is null)
 );
 create index images_post_idx on public.images (post_id) where post_id is not null;
 create index images_reply_idx on public.images (reply_id) where reply_id is not null;
@@ -222,12 +228,14 @@ create table public.reports (
 );
 create index reports_open_idx on public.reports (created_at) where status = 'open';
 
--- ========== 欄�?保護 ==========
--- RLS ?��??��?位�?對新?�值�??�以用 trigger ?��?一?��??�修?�特權�?�?-- auth.uid() ??null �?��後台（SQL Editor / service_role）�?不�?
--- pg_trigger_depth() = 1 �?��使用?�直??UPDATE；由計數 trigger 觸發?�更?�是 depth 2，放�?create or replace function public.guard_profile_role() returns trigger
+-- ========== 欄位保護 ==========
+-- RLS 無法逐欄位比對新舊值，所以用 trigger 擋住一般會員修改特權欄位
+-- auth.uid() 為 null 代表後台（SQL Editor / service_role），不攔
+-- pg_trigger_depth() = 1 代表使用者直接 UPDATE；由計數 trigger 觸發的更新是 depth 2，放行
+create or replace function public.guard_profile_role() returns trigger
 language plpgsql as $$
 begin
-  -- 角色?�能從�??��??��??�主也�??�自行�?級為 admin
+  -- 角色只能從後台變更，版主也不能自行升級為 admin
   if new.role is distinct from old.role and auth.uid() is not null then
     new.role = old.role;
   end if;
@@ -282,21 +290,24 @@ alter table public.reply_likes  enable row level security;
 alter table public.images       enable row level security;
 alter table public.reports      enable row level security;
 
--- profiles：�??�人?��?；只?�改?�己?��?role ??trigger 保護�?create policy profiles_read on public.profiles for select using (true);
+-- profiles：所有人可讀；只能改自己的（role 由 trigger 保護）
+create policy profiles_read on public.profiles for select using (true);
 create policy profiles_update_own on public.profiles for update
   using (id = auth.uid()) with check (id = auth.uid());
 
--- boards / species：�??�人?��?，�?主可�?create policy boards_read  on public.boards  for select using (true);
+-- boards / species：所有人可讀，版主可寫
+create policy boards_read  on public.boards  for select using (true);
 create policy boards_mod   on public.boards  for all using (public.is_moderator()) with check (public.is_moderator());
 create policy species_read on public.species for select using (true);
 create policy species_mod  on public.species for all using (public.is_moderator()) with check (public.is_moderator());
 
--- tags：�??�人?��?；登?��??�可?��?；只?��?主能?��??�刪??create policy tags_read       on public.tags for select using (true);
+-- tags：所有人可讀；登入會員可新增；只有版主能改名或刪除
+create policy tags_read       on public.tags for select using (true);
 create policy tags_insert     on public.tags for insert to authenticated with check (created_by = auth.uid());
 create policy tags_mod_update on public.tags for update using (public.is_moderator()) with check (public.is_moderator());
 create policy tags_mod_delete on public.tags for delete using (public.is_moderator());
 
--- posts：未?�除?��??�人?��?；登?�者可以用?�己?�身?�發?��?作者�??�主?�以修改
+-- posts：未刪除的所有人可讀；登入者可以用自己的身分發文；作者或版主可以修改
 create policy posts_read on public.posts for select
   using (deleted_at is null or author_id = auth.uid() or public.is_moderator());
 create policy posts_insert on public.posts for insert to authenticated
@@ -306,7 +317,7 @@ create policy posts_update on public.posts for update to authenticated
   using (author_id = auth.uid() or public.is_moderator())
   with check (author_id = auth.uid() or public.is_moderator());
 
--- post_species / post_tags：�??�人?��?；只?��?章�??��??�主?�以增刪
+-- post_species / post_tags：所有人可讀；只有文章作者或版主可以增刪
 create policy post_species_read on public.post_species for select using (true);
 create policy post_species_write on public.post_species for all to authenticated
   using (exists (select 1 from public.posts p where p.id = post_id and (p.author_id = auth.uid() or public.is_moderator())))
@@ -316,7 +327,8 @@ create policy post_tags_write on public.post_tags for all to authenticated
   using (exists (select 1 from public.posts p where p.id = post_id and (p.author_id = auth.uid() or public.is_moderator())))
   with check (exists (select 1 from public.posts p where p.id = post_id and (p.author_id = auth.uid() or public.is_moderator())));
 
--- replies：未?�除?��??�人?��?；�?章未?��??�未?�除?�登?�者�??��?�?create policy replies_read on public.replies for select
+-- replies：未刪除的所有人可讀；文章未鎖定、未刪除時登入者才能回覆
+create policy replies_read on public.replies for select
   using (deleted_at is null or author_id = auth.uid() or public.is_moderator());
 create policy replies_insert on public.replies for insert to authenticated
   with check (
@@ -327,19 +339,20 @@ create policy replies_update on public.replies for update to authenticated
   using (author_id = auth.uid() or public.is_moderator())
   with check (author_id = auth.uid() or public.is_moderator());
 
--- likes：�??�人?��?；只?�以?�己?�身?��?讚、收??create policy post_likes_read    on public.post_likes  for select using (true);
+-- likes：所有人可讀；只能以自己的身分按讚、收回
+create policy post_likes_read    on public.post_likes  for select using (true);
 create policy post_likes_insert  on public.post_likes  for insert to authenticated with check (user_id = auth.uid());
 create policy post_likes_delete  on public.post_likes  for delete to authenticated using (user_id = auth.uid());
 create policy reply_likes_read   on public.reply_likes for select using (true);
 create policy reply_likes_insert on public.reply_likes for insert to authenticated with check (user_id = auth.uid());
 create policy reply_likes_delete on public.reply_likes for delete to authenticated using (user_id = auth.uid());
 
--- images：�??�人?��?；只?�新增、修?�、刪?�自己�?
+-- images：所有人可讀；只能新增、修改、刪除自己的
 create policy images_read on public.images for select using (true);
 create policy images_write on public.images for all to authenticated
   using (owner_id = auth.uid()) with check (owner_id = auth.uid());
 
--- reports：登?�者可以檢?��??��??�主?��??��??��?
+-- reports：登入者可以檢舉；只有版主能讀取和處理
 create policy reports_insert on public.reports for insert to authenticated
   with check (reporter_id = auth.uid() and status = 'open');
 create policy reports_mod on public.reports for select using (public.is_moderator());

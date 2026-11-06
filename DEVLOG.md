@@ -137,6 +137,7 @@
 ### 問題與解法（Problems & Solutions）
 - 從最近一次 Next.js 建置的 source map 還原 `src/lib/` 內五個缺少的模組。核對同批建置內的 API 與編輯器原始碼和工作目錄一致。
 - 隔離環境通過 ESLint、正式建置與頁面和 SQLite 試用帳號檢查。資料表測試也已通過。
+- 發現 `00001_init.sql` 編碼損壞且遺失 SQL 行。從資料表設計文件以 UTF-8 重建 migration，並用重建的檔案通過 32 項資料表與權限測試。
 - 確認 Git 忽略 `.env`，並移除 `.env.local` 的同名設定，避免覆蓋 `.env`。
 
 ### 待辦事項（TODO）
