@@ -4,6 +4,8 @@
 !.env.example
 *.key
 *.pem
+*.p12
+*.pfx
 credentials.json
 
 # Node
@@ -11,6 +13,7 @@ node_modules/
 dist/
 build/
 .next/
+.local/
 .nuxt/
 coverage/
 *.tsbuildinfo
@@ -28,5 +31,14 @@ desktop.ini
 .idea/
 *.swp
 
+# Next.js
+next-env.d.ts
+
+# Supabase 本機
+supabase/.temp/
+
 # Claude Code 本機設定
 .claude/settings.local.json
+
+# create-next-app 產生的（不需要）
+AGENTS.md

@@ -10,7 +10,7 @@
 
 <!-- 封面：docs/images/cover.png，放論壇首頁截圖 -->
 
-## ✨ 特色
+## ✨ 規劃特色
 
 - 🌱 依植物物種分類討論，點進物種頁就能看到所有相關文章
 - 📷 發文、回覆都能附上照片，方便分享植株狀況
@@ -29,7 +29,14 @@ flowchart LR
 
 ## 🚀 快速開始
 
-工具鏈尚未建立，見 Roadmap。
+使用 Node.js 24 安裝依賴並啟動開發伺服器。
+
+```sh
+npm ci
+npm run dev
+```
+
+在瀏覽器開啟 `http://localhost:3000`。若要試用本機註冊、登入與發文，將 `.env.example` 複製為 `.env.local`，並將 `GREENTHUMB_TRIAL_AUTH` 設為 `1`。此模式使用本機 SQLite。
 
 ## 📁 專案結構
 
@@ -49,7 +56,7 @@ GreenThumb/
 
 ## 🗺️ Roadmap
 
-**目前階段**：規劃中
+**目前階段**為網頁原型與本機論壇試用。
 
 - [x] MVP 資料表設計（[`docs/database-schema.md`](docs/database-schema.md)）
 - [ ] **MVP**：會員、發文（發問／分享／教學）、回覆、圖片上傳、物種與自由標籤、地區、按讚、最佳解答
