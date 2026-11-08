@@ -24,7 +24,7 @@ flowchart LR
   使用者 --> Next.js[Next.js on Vercel]
   Next.js --> DB[(Supabase Postgres)]
   Next.js --> Auth[Supabase Auth]
-  Next.js --> Storage[Supabase Storage]
+  Next.js --> Images[ImgBB 圖片外連]
 ```
 
 ## 🚀 快速開始
@@ -36,7 +36,9 @@ npm ci
 npm run dev
 ```
 
-在瀏覽器開啟 `http://localhost:3000`。若要試用本機註冊、登入與發文，將 `.env.example` 複製為 `.env.local`，並將 `GREENTHUMB_TRIAL_AUTH` 設為 `1`。此模式使用本機 SQLite。
+在 `.env.local` 設定 Supabase Project URL 與公開金鑰後，在瀏覽器開啟 `http://localhost:3000`。會員、登入、討論文章及在地專欄均使用 Supabase；本機 SQLite 保留為切換前備份。建表、驗證信、管理員及部署步驟見 [Supabase 設定](docs/supabase-setup.md)。
+
+專欄頁 `/columns` 提供台灣達人地圖。點「發表在地專欄」，選擇縣市與鄉鎮市區後發表，地圖會顯示區域圖釘；沒有文章時顯示空狀態。首頁精選、專欄、討論、會員草稿與收藏都從 Supabase 讀寫，不混入示範文章或本機內容。以 `npm run test:supabase` 執行資料與權限測試，實作及資料來源見 [台灣達人地圖](docs/taiwan-expert-map.md)。
 
 ## 📁 專案結構
 
@@ -56,7 +58,7 @@ GreenThumb/
 
 ## 🗺️ Roadmap
 
-**目前階段**為網頁原型與本機論壇試用。
+**目前階段**為網頁原型，會員、所有文章、編輯精選、會員草稿及收藏均使用 Supabase；網站只保留版型、操作文字與基本分類／行政區選項。登入後手動儲存的草稿與收藏可跨裝置讀取。
 
 - [x] MVP 資料表設計（[`docs/database-schema.md`](docs/database-schema.md)）
 - [ ] **MVP**：會員、發文（發問／分享／教學）、回覆、圖片上傳、物種與自由標籤、地區、按讚、最佳解答

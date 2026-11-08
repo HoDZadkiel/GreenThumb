@@ -1,9 +1,9 @@
 import type { TrialPost } from "./trial-posts";
 
-export type ForumPost = TrialPost & { author: string; authorId: string };
+export type ForumPost = TrialPost & { author: string; authorId: string; createdAt: string; likeCount: number; replyCount: number; region: string | null; postType: string };
 
 export async function forumAction(action: string, fields: object = {}) {
-  const response = await fetch("/api/trial-forum", {
+  const response = await fetch("/api/forum", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ...fields, action }),

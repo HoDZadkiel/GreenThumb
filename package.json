@@ -7,7 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:schema": "node --experimental-vm-modules tests/schema.test.mjs docs/database-schema.md"
+    "test:schema": "node --experimental-vm-modules tests/schema.test.mjs docs/database-schema.md",
+    "test:columns": "node --test tests/expert-columns.test.mjs",
+    "test:supabase": "node --test tests/supabase-schema.test.mjs tests/forum-input.test.mjs",
+    "db:push": "node scripts/push-supabase.mjs",
+    "db:check": "node scripts/check-supabase.mjs",
+    "db:admin": "node scripts/set-supabase-admin.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
@@ -17,6 +22,8 @@
     "@supabase/supabase-js": "^2.118.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.1",
+    "leaflet": "^1.9.4",
+    "leaflet.markercluster": "^1.5.3",
     "lucide-react": "^1.65.0",
     "next": "16.4.3",
     "react": "19.3.0",
@@ -29,11 +36,15 @@
   "devDependencies": {
     "@electric-sql/pglite": "^0.2.17",
     "@tailwindcss/turbopack": "^4",
+    "@types/leaflet": "^1.9.22",
+    "@types/leaflet.markercluster": "^1.5.6",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
+    "postgres": "^4.1.0",
+    "supabase": "^3.0.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

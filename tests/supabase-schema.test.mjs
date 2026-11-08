@@ -1,0 +1,65 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { PGlite } from "@electric-sql/pglite";
+
+test("Supabase migrations enforce roles, ownership, editor values and map regions", async (t) => {
+  const db = new PGlite();
+  t.after(() => db.close());
+  await db.exec(`create schema auth;
+    create table auth.users (id uuid primary key, raw_user_meta_data jsonb default '{}');
+    create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('test.uid', true), '')::uuid $$;
+    create role anon; create role authenticated;
+    grant usage on schema auth to anon, authenticated;`);
+  for (const file of ["00001_init.sql", "00002_live_forum.sql", "00003_cloud_content.sql"]) await db.exec(readFileSync(`supabase/migrations/${file}`, "utf8"));
+  const a = "00000000-0000-0000-0000-000000000001", b = "00000000-0000-0000-0000-000000000002", m = "00000000-0000-0000-0000-000000000003";
+  await db.query("insert into auth.users (id, raw_user_meta_data) values ($1, $4), ($2, '{}'), ($3, '{}')", [a, b, m, JSON.stringify({ name: "作者", role: "admin" })]);
+  await db.query("update public.profiles set role='admin' where id=$1", [m]);
+  async function as(uid, sql, args = []) {
+    await db.exec("reset role");
+    await db.query("select set_config('test.uid', $1, false)", [uid]);
+    await db.exec(`set role ${uid ? "authenticated" : "anon"}`);
+    try { return await db.query(sql, args); } finally { await db.exec("reset role"); }
+  }
+  assert.equal((await db.query("select count(*)::int as n from public.taiwan_regions")).rows[0].n, 368);
+  assert.equal((await as("", "select * from public.boards")).rows.length, 4);
+  assert.equal((await db.query("select role from public.profiles where id=$1", [a])).rows[0].role, "member");
+  await assert.rejects(as(a, "update public.profiles set role='admin' where id=$1", [a]));
+  await assert.rejects(as("", "insert into public.posts (board_id, author_id, title, body) values (1,$1,'x','x')", [a]));
+  await assert.rejects(as(a, "insert into public.posts (board_id, author_id, title, body) values (1,$1,'x','x')", [b]));
+  const post = (await as(a, "insert into public.posts (board_id,author_id,title,body,images,font,font_size) values (1,$1,'陽台','**植物**',array['https://i.ibb.co/abc/plant.webp'],'serif',18) returning *", [a])).rows[0];
+  assert.equal(post.font, "serif");
+  assert.equal(post.font_size, 18);
+  assert.equal((await as("", "select * from public.posts")).rows.length, 1);
+  assert.equal((await as(b, "update public.posts set title='攻擊' where id=$1 returning id", [post.id])).rows.length, 0);
+  await assert.rejects(as(a, "update public.posts set author_id=$1 where id=$2", [b, post.id]));
+  await assert.rejects(as(a, "update public.posts set font_size=99 where id=$1", [post.id]));
+  await assert.rejects(as(a, "update public.posts set images=array['https://evil.test/image.jpg'] where id=$1", [post.id]));
+  const edited = await as(m, "update public.posts set title='管理員修訂' where id=$1 returning author_id", [post.id]);
+  assert.equal(edited.rows[0].author_id, a);
+  const column = (await as(a, "insert into public.expert_columns (author_id,title,excerpt,body,region_code) values ($1,'在地筆記','簡介','內容','63000030') returning *", [a])).rows[0];
+  await assert.rejects(as("", "insert into public.expert_columns (author_id,title,excerpt,body,region_code) values ($1,'x','x','x','63000030')", [a]));
+  await assert.rejects(as(a, "insert into public.expert_columns (author_id,title,excerpt,body,region_code) values ($1,'x','x','x','00000000')", [a]));
+  assert.equal((await as(b, "update public.expert_columns set region_code='10016010' where id=$1 returning id", [column.id])).rows.length, 0);
+  assert.equal((await as(a, "update public.expert_columns set region_code='10016010' where id=$1 returning region_code", [column.id])).rows[0].region_code, "10016010");
+  assert.equal((await as(m, "update public.expert_columns set title='修訂' where id=$1 returning author_id", [column.id])).rows[0].author_id, a);
+  await assert.rejects(as(m, "update public.expert_columns set author_id=$1 where id=$2", [m, column.id]));
+  assert.equal((await as('', 'select * from public.editorial_articles')).rows.length,3);
+  await assert.rejects(as(a,"insert into public.editorial_articles (slug,title,excerpt,body,category) values ('forged','x','x','x','x')"));
+  await as(m,"insert into public.editorial_articles (slug,title,excerpt,body,category) values ('unpublished','x','x','x','x')");
+  assert.equal((await as('',"select * from public.editorial_articles where slug='unpublished'")).rows.length,0);
+  await as(a,"select public.save_member_draft('discussion', '{\"title\":\"雲端草稿\"}')");
+  await as(a,"select public.save_member_draft('discussion', '{\"title\":\"再次儲存\"}')");
+  assert.equal((await as(a,"select payload->>'title' as title from public.member_drafts")).rows[0].title,'再次儲存');
+  assert.equal((await as(b,"select * from public.member_drafts")).rows.length,0);
+  assert.equal((await as(m,"select * from public.member_drafts")).rows.length,0);
+  await assert.rejects(as(a,"insert into public.member_drafts (user_id,kind,payload) values ($1,'column','{}')",[b]));
+  await as(a,'insert into public.post_bookmarks (user_id,post_id) values ($1,$2)',[a,post.id]);
+  assert.equal((await as(a,'select * from public.post_bookmarks')).rows.length,1);
+  assert.equal((await as(b,'select * from public.post_bookmarks')).rows.length,0);
+  await assert.rejects(as(b,'insert into public.post_bookmarks (user_id,post_id) values ($1,$2)',[a,post.id]));
+  await as(a,"insert into public.posts (board_id,author_id,title,body) values (1,$1,'草稿發表','內容')",[a]);
+  assert.equal((await as(a,"select * from public.member_drafts where kind='discussion'")).rows.length,0);
+  const tables = await db.query("select relname from pg_class where relnamespace='public'::regnamespace and relkind='r' and not relrowsecurity");
+  assert.deepEqual(tables.rows, []);
+});

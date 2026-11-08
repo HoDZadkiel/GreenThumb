@@ -6,6 +6,8 @@
 *.pem
 *.p12
 *.pfx
+*.jks
+*.keystore
 credentials.json
 
 # Node
@@ -20,6 +22,15 @@ coverage/
 npm-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+*.log
+*.sqlite*
+
+# Python 開發環境與快取
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
 
 # OS
 .DS_Store
