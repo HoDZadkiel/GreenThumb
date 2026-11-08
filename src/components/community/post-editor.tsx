@@ -2,14 +2,15 @@
 
 import { useRef, useState } from "react";
 import Image from "next/image";
-import { ArrowRight, ArrowUpRight, Bold, Check, CheckCircle2, ChevronRight, Columns2, Eye, Heading2, ImagePlus, Italic, Link as LinkIcon, List, PenLine, Quote, Save, Sprout, Strikethrough, X } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Bold, Check, CheckCircle2, ChevronRight, Columns2, Eye, Heading2, ImagePlus, Italic, Link as LinkIcon, List, MapPin, PenLine, Quote, Save, Sprout, Strikethrough, X } from "lucide-react";
 import { isImgBBImage, topics } from "@/lib/community-content";
+import { getRegion, taiwanCounties, taiwanRegions } from "@/lib/expert-columns";
 import { articleFonts, articleFontSizes, type ArticleFont, type ArticleFontSize, type TrialPost } from "@/lib/trial-posts";
 import { forumAction, type ForumPost } from "@/lib/trial-forum-client";
 import { useCloudDraft } from "./use-cloud-draft";
 import { ArticleMarkdown } from "./article-markdown";
 
-const emptyDraft = { title: "", body: "", category: "觀葉植物", images: [] as string[], fontSize: 16 as ArticleFontSize, font: "sans" as ArticleFont };
+const emptyDraft = { title: "", body: "", category: "觀葉植物", images: [] as string[], fontSize: 16 as ArticleFontSize, font: "sans" as ArticleFont, county: "", regionCode: "" };
 const markdownTools = [
   { label: "標題", icon: Heading2, start: "\n\n## ", sample: "小標題", end: "\n\n" },
   { label: "粗體", icon: Bold, start: "**", sample: "重點文字", end: "**" },
@@ -21,7 +22,7 @@ const markdownTools = [
 ];
 
 function initialDraft(post?:TrialPost):typeof emptyDraft {
-  if(post)return {...post,font:post.font??"sans",fontSize:post.fontSize??16};
+  if(post)return {...post,font:post.font??"sans",fontSize:post.fontSize??16,county:getRegion(post.regionCode??"")?.county??"",regionCode:post.regionCode??""};
   const board=typeof window!=="undefined"?new URLSearchParams(window.location.search).get("board"):null;
   return {...emptyDraft,category:board&&topics.includes(board)?board:emptyDraft.category};
 }
@@ -37,6 +38,8 @@ export function PostEditor({ post, canPublish, onRequireLogin, onPublished }: { 
   const [imageError, setImageError] = useState("");
   const [unavailableImages, setUnavailableImages] = useState<string[]>([]);
   const [storageError, setStorageError] = useState("");
+  const location = getRegion(draft.regionCode ?? "");
+  const county = draft.county ?? location?.county ?? "";
 
   async function publishTrialPost() {
     setStorageError("");
@@ -52,6 +55,11 @@ export function PostEditor({ post, canPublish, onRequireLogin, onPublished }: { 
       setEditorMode("write");
       if (!title) document.getElementById("post-title")?.focus();
       else editor.current?.focus();
+      return;
+    }
+    if (county && !location) {
+      setStorageError("請選擇鄉鎮市區，或改為不公開位置。");
+      document.getElementById("post-district")?.focus();
       return;
     }
     if (!canPublish) {
@@ -124,6 +132,15 @@ export function PostEditor({ post, canPublish, onRequireLogin, onPublished }: { 
       <section className="editor-document">
         <div className="editor-board-row"><label htmlFor="post-category">發表看板</label><select id="post-category" value={draft.category} onChange={(event) => { setDraft({ ...draft, category: event.target.value }); setDraftSaved(false); }}>{topics.slice(1).map((item) => <option key={item}>{item}</option>)}</select><span><Sprout size={14} /> 找到懂你植物的同好</span></div>
         <div className="editor-title-field"><label htmlFor="post-title">討論標題 <span>必填</span></label><input id="post-title" name="title" value={draft.title} placeholder="用一句話，說說你的問題或新發現…" required maxLength={100} onChange={(event) => { setDraft({ ...draft, title: event.target.value }); setDraftSaved(false); }} /><small>{draft.title.length} / 100</small></div>
+        <fieldset className="post-location-fields" aria-describedby="post-location-hint">
+          <legend><MapPin size={16} />讓文章在地圖上被看見 <span>選填</span></legend>
+          <p id="post-location-hint">選擇縣市與鄉鎮市區，文章就會多一枚地圖圖釘。只標示行政區，不需詳細地址，也可以不選。</p>
+          <div className="post-location-selects">
+            <label htmlFor="post-county">所在縣市<select id="post-county" value={county} onChange={event => { setDraft({ ...draft, county: event.target.value, regionCode: "" }); setStorageError(""); }}><option value="">不公開位置</option>{taiwanCounties.map(name => <option key={name}>{name}</option>)}</select></label>
+            <label htmlFor="post-district">鄉鎮市區<select id="post-district" value={draft.regionCode ?? ""} disabled={!county} onChange={event => { setDraft({ ...draft, regionCode: event.target.value }); setStorageError(""); }}><option value="">{county ? "請選擇鄉鎮市區" : "先選擇縣市"}</option>{taiwanRegions.filter(region => region.county === county).map(region => <option key={region.code} value={region.code}>{region.district}</option>)}</select></label>
+          </div>
+          {location && <div className="post-location-summary"><span><MapPin size={14} />將在 {location.county} · {location.district} 顯示圖釘</span><button type="button" onClick={() => { setDraft({ ...draft, county: "", regionCode: "" }); setStorageError(""); }}>取消位置</button></div>}
+        </fieldset>
       <div className="editor-mode-bar">
         <div className="composer-tabs" role="group" aria-label="編輯模式">
           <button type="button" aria-pressed={editorMode === "write"} onClick={() => setEditorMode("write")}><PenLine size={14} />撰寫</button>
@@ -153,6 +170,7 @@ export function PostEditor({ post, canPublish, onRequireLogin, onPublished }: { 
           <div className="editor-panel-heading"><span>即時預覽</span></div>
           <div className="composer-preview">
             <span className="preview-board"><Sprout size={14} />{draft.category}</span>
+            {location && <span className="preview-location"><MapPin size={13} />{location.county} · {location.district}</span>}
             {draft.title.trim() && <h2>{draft.title}</h2>}
             {draft.body.trim()
               ? <ArticleMarkdown body={draft.body} font={draft.font} fontSize={draft.fontSize} />

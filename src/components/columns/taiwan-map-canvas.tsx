@@ -4,13 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import type * as Leaflet from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
-import { getRegion, type ColumnPin } from "@/lib/expert-columns";
+import { getRegion, type ArticlePin } from "@/lib/expert-columns";
 
 type MapState = { L: typeof Leaflet; map: Leaflet.Map; group?: Leaflet.MarkerClusterGroup; markers: Map<string, Leaflet.Marker> };
 const homeBounds: Leaflet.LatLngTuple[] = [[21.85, 119.25], [25.4, 122.05]];
 
 export default function TaiwanMapCanvas({ pins, selectedId, county, resetKey, onSelect }: {
-  pins: ColumnPin[]; selectedId: string | null; county: string; resetKey: number; onSelect: (id: string) => void;
+  pins: ArticlePin[]; selectedId: string | null; county: string; resetKey: number; onSelect: (id: string) => void;
 }) {
   const surface = useRef<HTMLDivElement>(null);
   const state = useRef<MapState | null>(null);
@@ -40,7 +40,7 @@ export default function TaiwanMapCanvas({ pins, selectedId, county, resetKey, on
       resize.observe(surface.current);
       setReady(true);
     }
-    start().catch(() => { if (!cancelled) setError("地圖暫時無法載入，仍可從右側列表閱讀專欄。"); });
+    start().catch(() => { if (!cancelled) setError("地圖暫時無法載入，仍可從右側列表閱讀文章。"); });
     return () => { cancelled = true; resize?.disconnect(); map?.remove(); state.current = null; };
   }, []);
 
@@ -55,7 +55,7 @@ export default function TaiwanMapCanvas({ pins, selectedId, county, resetKey, on
       iconCreateFunction: (cluster) => {
         const content = document.createElement("span");
         content.textContent = String(cluster.getChildCount());
-        content.setAttribute("aria-label", `${cluster.getChildCount()} 篇專欄，點擊展開`);
+        content.setAttribute("aria-label", `${cluster.getChildCount()} 篇文章，點擊展開`);
         return L.divIcon({ html: content, className: "expert-map-cluster", iconSize: [42, 42] });
       },
     });
@@ -64,7 +64,7 @@ export default function TaiwanMapCanvas({ pins, selectedId, county, resetKey, on
       const region = getRegion(pin.regionCode);
       if (!region) continue;
       const shape = document.createElement("span");
-      shape.className = "expert-pin-shape";
+      shape.className = `expert-pin-shape${pin.kind === "post" ? " post-pin-shape" : ""}`;
       const marker = L.marker([region.lat, region.lng], {
         icon: L.divIcon({ html: shape, className: "expert-map-pin", iconSize: [30, 40], iconAnchor: [15, 38], popupAnchor: [0, -32] }),
         title: `${pin.author} · ${region.county}${region.district} · ${pin.title}`,
@@ -73,14 +73,14 @@ export default function TaiwanMapCanvas({ pins, selectedId, county, resetKey, on
       const popup = document.createElement("div");
       popup.className = "expert-map-popup";
       const location = document.createElement("small");
-      location.textContent = `${region.county} · ${region.district}`;
+      location.textContent = `${pin.kind === "post" ? "討論文章" : "達人專欄"} · ${region.county} · ${region.district}`;
       const title = document.createElement("strong");
       title.textContent = pin.title;
       const author = document.createElement("p");
       author.textContent = pin.author;
       const link = document.createElement("a");
       link.href = pin.href;
-      link.textContent = "閱讀專欄 →";
+      link.textContent = pin.kind === "post" ? "閱讀文章 →" : "閱讀專欄 →";
       popup.append(location, title, author, link);
       marker.bindPopup(popup, { maxWidth: 260 }).on("click", () => select.current(pin.id));
       markers.set(pin.id, marker);
@@ -108,7 +108,7 @@ export default function TaiwanMapCanvas({ pins, selectedId, county, resetKey, on
   }, [selectedId, pins, ready]);
 
   return <div className="taiwan-map-frame">
-    <div ref={surface} className="taiwan-map-surface" aria-label="台灣達人專欄互動地圖" />
+    <div ref={surface} className="taiwan-map-surface" aria-label="台灣在地種植互動地圖" />
     {!ready && !error && <p className="map-load-message" role="status">正在展開台灣地圖…</p>}
     {error && <p className="map-load-message" role="alert">{error}</p>}
     {tileError && <p className="map-tile-error" role="status">底圖暫時無法載入；圖釘與專欄列表仍可使用。</p>}

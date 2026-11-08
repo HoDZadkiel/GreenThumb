@@ -11,7 +11,7 @@ test("Supabase migrations enforce roles, ownership, editor values and map region
     create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('test.uid', true), '')::uuid $$;
     create role anon; create role authenticated;
     grant usage on schema auth to anon, authenticated;`);
-  for (const file of ["00001_init.sql", "00002_live_forum.sql", "00003_cloud_content.sql"]) await db.exec(readFileSync(`supabase/migrations/${file}`, "utf8"));
+  for (const file of ["00001_init.sql", "00002_live_forum.sql", "00003_cloud_content.sql", "00004_article_interactions.sql", "00005_optional_post_location.sql"]) await db.exec(readFileSync(`supabase/migrations/${file}`, "utf8"));
   const a = "00000000-0000-0000-0000-000000000001", b = "00000000-0000-0000-0000-000000000002", m = "00000000-0000-0000-0000-000000000003";
   await db.query("insert into auth.users (id, raw_user_meta_data) values ($1, $4), ($2, '{}'), ($3, '{}')", [a, b, m, JSON.stringify({ name: "作者", role: "admin" })]);
   await db.query("update public.profiles set role='admin' where id=$1", [m]);
@@ -37,6 +37,16 @@ test("Supabase migrations enforce roles, ownership, editor values and map region
   await assert.rejects(as(a, "update public.posts set images=array['https://evil.test/image.jpg'] where id=$1", [post.id]));
   const edited = await as(m, "update public.posts set title='管理員修訂' where id=$1 returning author_id", [post.id]);
   assert.equal(edited.rows[0].author_id, a);
+  assert.equal(post.region_code, null);
+  await assert.rejects(as(a, "update public.posts set region_code='fake' where id=$1", [post.id]));
+  assert.equal((await as(b, "update public.posts set region_code='63000030' where id=$1 returning id", [post.id])).rows.length, 0);
+  const located = (await as(a, "update public.posts set region_code='63000030' where id=$1 returning region_code,region", [post.id])).rows[0];
+  assert.equal(located.region_code, "63000030"); assert.equal(located.region, "north");
+  await as(a, "update public.posts set region_code='09020010' where id=$1", [post.id]);
+  assert.equal((await as('', "select * from public.posts where region_code is not null and deleted_at is null")).rows[0].region, "island");
+  await as(a, "update public.posts set region_code=null where id=$1", [post.id]);
+  assert.equal((await as('', "select * from public.posts where region_code is not null and deleted_at is null")).rows.length, 0);
+  assert.equal((await db.query("select region from public.posts where id=$1", [post.id])).rows[0].region, null);
   const column = (await as(a, "insert into public.expert_columns (author_id,title,excerpt,body,region_code) values ($1,'在地筆記','簡介','內容','63000030') returning *", [a])).rows[0];
   await assert.rejects(as("", "insert into public.expert_columns (author_id,title,excerpt,body,region_code) values ($1,'x','x','x','63000030')", [a]));
   await assert.rejects(as(a, "insert into public.expert_columns (author_id,title,excerpt,body,region_code) values ($1,'x','x','x','00000000')", [a]));
@@ -48,6 +58,40 @@ test("Supabase migrations enforce roles, ownership, editor values and map region
   await assert.rejects(as(a,"insert into public.editorial_articles (slug,title,excerpt,body,category) values ('forged','x','x','x','x')"));
   await as(m,"insert into public.editorial_articles (slug,title,excerpt,body,category) values ('unpublished','x','x','x','x')");
   assert.equal((await as('',"select * from public.editorial_articles where slug='unpublished'")).rows.length,0);
+  // Every interaction is bound to a visible article and the authenticated author.
+  await as(a, 'insert into public.post_likes (post_id,user_id) values ($1,$2) on conflict do nothing', [post.id,a]);
+  await as(a, 'insert into public.post_likes (post_id,user_id) values ($1,$2) on conflict do nothing', [post.id,a]);
+  assert.equal((await db.query('select like_count from public.posts where id=$1',[post.id])).rows[0].like_count,1);
+  await assert.rejects(as(b,'insert into public.post_likes (post_id,user_id) values ($1,$2)',[post.id,a]));
+  assert.equal((await as(b,'delete from public.post_likes where post_id=$1 returning post_id',[post.id])).rows.length,0);
+  await as(a,'delete from public.post_likes where post_id=$1',[post.id]);
+  assert.equal((await db.query('select like_count from public.posts where id=$1',[post.id])).rows[0].like_count,0);
+  await as(b,"insert into public.replies (post_id,author_id,body) values ($1,$2,'讀者回應')",[post.id,b]);
+  assert.equal((await db.query('select reply_count from public.posts where id=$1',[post.id])).rows[0].reply_count,1);
+  await assert.rejects(as(a,"insert into public.replies (post_id,author_id,body) values ($1,$2,'冒用作者')",[post.id,b]));
+  await as(m,'update public.posts set is_locked=true where id=$1',[post.id]);
+  await assert.rejects(as(b,"insert into public.replies (post_id,author_id,body) values ($1,$2,'鎖定後回應')",[post.id,b]));
+  for (const [key,id] of [['column_id',column.id],['editorial_slug','balcony-field-notes']]) {
+    await assert.rejects(as('',`insert into public.column_replies (${key},author_id,body) values ($1,$2,'訪客')`,[id,a]));
+    await assert.rejects(as(a,`insert into public.column_replies (${key},author_id,body) values ($1,$2,'冒用作者')`,[id,b]));
+    await assert.rejects(as(a,`insert into public.column_replies (${key},author_id,body) values ($1,$2,'   ')`,[id,a]));
+    await assert.rejects(as(a,`insert into public.column_replies (${key},author_id,body) values ($1,$2,$3)`,[id,a,'字'.repeat(2001)]));
+    const reply=(await as(a,`insert into public.column_replies (${key},author_id,body) values ($1,$2,'在地經驗') returning id`,[id,a])).rows[0];
+    assert.equal((await as('',`select body from public.column_replies where id=$1`,[reply.id])).rows[0].body,'在地經驗');
+    await assert.rejects(as(b,'update public.column_replies set body=\'篡改\' where id=$1',[reply.id]));
+    await as(a,`insert into public.column_likes (${key},user_id) values ($1,$2) on conflict (${key},user_id) do nothing`,[id,a]);
+    await as(a,`insert into public.column_likes (${key},user_id) values ($1,$2) on conflict (${key},user_id) do nothing`,[id,a]);
+    assert.equal((await as('',`select * from public.column_likes where ${key}=$1`,[id])).rows.length,1);
+    await assert.rejects(as(b,`insert into public.column_likes (${key},user_id) values ($1,$2)`,[id,a]));
+    assert.equal((await as(b,`delete from public.column_likes where ${key}=$1 returning id`,[id])).rows.length,0);
+    await as(a,`delete from public.column_likes where ${key}=$1`,[id]);
+    assert.equal((await as('',`select * from public.column_likes where ${key}=$1`,[id])).rows.length,0);
+  }
+  await assert.rejects(as(a,"insert into public.column_replies (editorial_slug,author_id,body) values ('unpublished',$1,'不可公開')",[a]));
+  await assert.rejects(as(a,"insert into public.column_likes (editorial_slug,user_id) values ('unpublished',$1)",[a]));
+  await assert.rejects(as(a,"insert into public.column_replies (column_id,editorial_slug,author_id,body) values ($1,'balcony-field-notes',$2,'雙重目標')",[column.id,a]));
+  await as(m,"update public.editorial_articles set published=false where slug='balcony-field-notes'");
+  assert.equal((await as('',"select * from public.column_replies where editorial_slug='balcony-field-notes'")).rows.length,0);
   await as(a,"select public.save_member_draft('discussion', '{\"title\":\"雲端草稿\"}')");
   await as(a,"select public.save_member_draft('discussion', '{\"title\":\"再次儲存\"}')");
   assert.equal((await as(a,"select payload->>'title' as title from public.member_drafts")).rows[0].title,'再次儲存');

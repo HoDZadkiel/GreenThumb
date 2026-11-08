@@ -14,12 +14,14 @@ export type ExpertColumnSummary = {
   updatedAt: string;
 };
 export type ExpertColumn = ExpertColumnSummary & { body: string };
-export type ColumnPin = {
+export type ArticlePin = {
   id: string;
+  kind: "column" | "post";
   title: string;
   author: string;
   regionCode: string;
   href: string;
+  createdAt: string;
 };
 export function getRegion(code: string) {
   return taiwanRegions.find((region) => region.code === code);

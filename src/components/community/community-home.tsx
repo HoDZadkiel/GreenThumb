@@ -2,27 +2,27 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, Bookmark, ChevronDown, ChevronRight, Flower2, Heart, LayoutList, Leaf, List, MapPin, MessageCircle, PenLine, Plus, Search, SlidersHorizontal, Sprout, X } from "lucide-react";
 
 import { topics } from "@/lib/community-content";
+import { getRegion } from "@/lib/expert-columns";
 import { forumAction, type ForumPost } from "@/lib/trial-forum-client";
 import { memberAction } from "@/lib/member-client";
 import { PostEditor } from "./post-editor";
-import { ArticleMarkdown } from "./article-markdown";
 import { CommunitySessionContext, type ForumUser } from "./community-session";
 
-type Post = {id:string;title:string;excerpt:string;category:string;type:string;author:string;authorId:string;region:string;time:string;likes:number;replies:number;tags:string[];color:string;trial:ForumPost};
- type Mode = "post" | "about" | "login" | "register";
+type Post = {id:string;title:string;excerpt:string;category:string;type:string;author:string;authorId:string;region:string;location:string;time:string;likes:number;replies:number;tags:string[];color:string;trial:ForumPost};
+ type Mode = "about" | "login" | "register";
  function toPostPreview(post:ForumPost):Post {
   const regions:Record<string,string>={north:"北部",central:"中部",south:"南部",east:"東部",island:"離島",indoor:"室內",highland:"高山"};
   const types:Record<string,string>={question:"發問",share:"分享",guide:"教學"};
+  const location = getRegion(post.regionCode ?? "");
   return {id:post.id,title:post.title,excerpt:post.body,category:post.category,type:types[post.postType]??"討論",author:post.author,authorId:post.authorId,
-  region:regions[post.region??""]??"未指定",time:new Date(post.createdAt).toLocaleDateString("zh-TW"),likes:post.likeCount,replies:post.replyCount,tags:[post.category],color:"sage",trial:post};
+  region:regions[post.region??""]??"未指定",location:location?`${location.county} · ${location.district}`:regions[post.region??""]??"未指定",time:new Date(post.createdAt).toLocaleDateString("zh-TW"),likes:post.likeCount,replies:post.replyCount,tags:[post.category],color:"sage",trial:post};
  }
 
-type CommunityView = "home" | "columns" | "discussions" | "write" | "expert-write";
+type CommunityView = "home" | "columns" | "discussions" | "article" | "write" | "expert-write";
 
 export function CommunityHome({ view = "home", children, editId }: { view?: CommunityView; children?: ReactNode; editId?: string | null }) {
   const [topic, setTopic] = useState("全部植物");
@@ -33,7 +33,6 @@ export function CommunityHome({ view = "home", children, editId }: { view?: Comm
   const [bookmarkPending,setBookmarkPending]=useState<string|null>(null);
   const [bookmarkOwner,setBookmarkOwner]=useState<string|null>(null);
   const [saved, setSaved] = useState<Post["id"][]>([]);
-  const [selected, setSelected] = useState<Post | null>(null);
   const [mode, setMode] = useState<Mode>("about");
   const [user, setUser] = useState<ForumUser | null>(null);
   const [loadingForum, setLoadingForum] = useState(true);
@@ -77,9 +76,8 @@ export function CommunityHome({ view = "home", children, editId }: { view?: Comm
   if (sort === "最多回覆") filtered.sort((a, b) => b.replies - a.replies);
   const writeHref = "/discussions/write" + (topic !== "全部植物" ? "?board=" + encodeURIComponent(topic) : "");
 
-  function open(nextMode: Mode, post?: Post) {
+  function open(nextMode: Mode) {
     setMode(nextMode);
-    setSelected(post ?? null);
     setStorageError("");
     setAuthNotice("");
     if (!dialog.current?.open) dialog.current?.showModal();
@@ -191,7 +189,8 @@ export function CommunityHome({ view = "home", children, editId }: { view?: Comm
               : published ? <div className="write-notice">
                 <h2>{editId ? "文章修改已儲存" : "文章已發表"}</h2>
                 <p>{published.title}</p>
-                <button className="primary-button" onClick={() => open("post", toPostPreview(published))}>查看文章</button>
+                <Link className="primary-button" href={`/discussions/${published.id}`}>查看文章</Link>
+                {published.regionCode && <Link className="text-link" href="/columns#expert-map"><MapPin size={15} />到地圖看看文章圖釘</Link>}
               </div>
               : editId && !user ? <div className="write-notice"><p>登入後可編輯自己的文章。</p><button className="primary-button" onClick={() => open("login")}>登入或註冊</button></div>
               : editId && (!editing || (user?.role === "member" && editing.authorId !== user?.id))
@@ -219,7 +218,7 @@ export function CommunityHome({ view = "home", children, editId }: { view?: Comm
             <div className="post-list" aria-live="polite">
               {filtered.map((post) => <article className="post" key={post.id}>
                 <div className={"plant-tile " + post.color} aria-hidden="true">{post.category === "花卉植物" ? <Flower2 /> : post.category === "多肉植物" ? <Sprout /> : <Leaf />}<span>{post.category.slice(0, 2)}</span></div>
-                <div className="post-body"><div className="post-meta"><span className={"post-type type-" + post.type}>{post.type}</span><span>{post.author}</span><span className="meta-dot">·</span><span>{post.time}</span></div><button className="post-title" onClick={() => open("post", post)}>{post.title}</button><p>{post.excerpt}</p><div className="post-bottom"><div className="tags">{post.tags.map((tag) => <button key={tag} onClick={() => setQuery(tag)}>#{tag}</button>)}<span className="post-location"><MapPin size={11} />{post.region}</span></div><div className="post-stats"><span><Heart size={14} />{post.likes}</span><span><MessageCircle size={14} />{post.replies}</span><button aria-label={(saved.includes(post.id) ? "取消收藏：" : "收藏：") + post.title} aria-pressed={saved.includes(post.id)} className={saved.includes(post.id) ? "is-saved" : ""} disabled={bookmarkPending!==null || (!!user && bookmarkOwner!==user.id)} onClick={() => toggleBookmark(post.id)}><Bookmark size={15} fill={saved.includes(post.id) ? "currentColor" : "none"} /></button></div></div></div>
+                <div className="post-body"><div className="post-meta"><span className={"post-type type-" + post.type}>{post.type}</span><span>{post.author}</span><span className="meta-dot">·</span><span>{post.time}</span></div><Link className="post-title" href={`/discussions/${post.id}`}>{post.title}</Link><p>{post.excerpt}</p><div className="post-bottom"><div className="tags">{post.tags.map((tag) => <button key={tag} onClick={() => setQuery(tag)}>#{tag}</button>)}<span className="post-location"><MapPin size={11} />{post.location}</span></div><div className="post-stats"><span><Heart size={14} />{post.likes}</span><Link href={`/discussions/${post.id}#article-responses`} aria-label={`閱讀 ${post.replies} 則回應`}><MessageCircle size={14} />{post.replies}</Link><button aria-label={(saved.includes(post.id) ? "取消收藏：" : "收藏：") + post.title} aria-pressed={saved.includes(post.id)} className={saved.includes(post.id) ? "is-saved" : ""} disabled={bookmarkPending!==null || (!!user && bookmarkOwner!==user.id)} onClick={() => toggleBookmark(post.id)}><Bookmark size={15} fill={saved.includes(post.id) ? "currentColor" : "none"} /></button></div></div></div>
               </article>)}
               {filtered.length === 0 && <div className="empty-state"><Sprout size={35} /><h3>這片小花園還在等待新故事</h3><p>試試其他關鍵字，或切換植物分類與地區。</p><button className="text-link" onClick={() => { setQuery(""); setTopic("全部植物"); setRegion("所有地區"); }}>清除篩選 <ArrowRight size={15} /></button></div>}
             </div>
@@ -240,17 +239,7 @@ export function CommunityHome({ view = "home", children, editId }: { view?: Comm
       <footer className="site-footer"><Link className="footer-brand" href="/"><Sprout size={21} /> GreenThumb</Link><button className="quiet-button" onClick={() => open("about")}>關於社群</button><span>© 2026 GreenThumb <span className="footer-separator">/</span> Made for plant people.</span></footer>
 
       <dialog ref={dialog} className="community-dialog" aria-labelledby="dialog-title" onClick={(event) => { if (event.target === event.currentTarget) dialog.current?.close(); }}><button className="dialog-close" aria-label="關閉視窗" onClick={() => dialog.current?.close()}><X size={20} /></button>
-        {mode === "post" && selected ? (
-          <>
-            <p className="eyebrow">{selected.category} / {selected.type}</p>
-            <h2 id="dialog-title">{selected.title}</h2>
-            <p className="dialog-meta">{selected.author} · {selected.time} · {selected.region}</p>
-            {selected.trial.font ? <ArticleMarkdown body={selected.trial.body} font={selected.trial.font} fontSize={selected.trial.fontSize}/> : <p className="trial-post-body">{selected.trial.body}</p>}
-            {selected.trial.images.length>0 && <ul className="trial-post-photos">{selected.trial.images.map((url,index)=><li key={url}><Image src={url} alt={"植物照片 "+(index+1)} width={148} height={110} unoptimized referrerPolicy="no-referrer"/></li>)}</ul>}
-            {storageError && <p role="alert">{storageError}</p>}
-            {view!=="write" && user && (user.role!=="member" || user.id===selected.authorId) && <Link className="primary-button trial-edit" href={`/discussions/write?edit=${encodeURIComponent(selected.id)}`}>編輯文章</Link>}
-          </>
-        ) : mode === "login" || mode === "register" ? (
+        {mode === "login" || mode === "register" ? (
           <>
             <h2 id="dialog-title">{mode === "register" ? "註冊帳號" : "登入 GreenThumb"}</h2>
 

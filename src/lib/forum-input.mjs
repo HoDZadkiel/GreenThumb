@@ -24,6 +24,16 @@ export function validPostId(id) {
 export function validColumnId(id) {
   return typeof id === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 }
+function discussionLocation(input, allowIncomplete = false) {
+  const code = input.regionCode;
+  if (code !== undefined && code !== null && typeof code !== "string") throw new ForumError("請選擇有效的所在地區。");
+  const region = regions.find(item => item.code === code);
+  if (code && !region) throw new ForumError("請選擇有效的縣市及鄉鎮市區。");
+  const county = input.county === undefined ? region?.county ?? "" : input.county;
+  if (typeof county !== "string" || (county && !regions.some(item => item.county === county)) || (region && region.county !== county)) throw new ForumError("縣市與鄉鎮市區不相符，請重新選擇。");
+  if (county && !region && !allowIncomplete) throw new ForumError("請選擇鄉鎮市區，或改為不公開位置。");
+  return { county, regionCode: region?.code ?? null };
+}
 export function validatePost(input) {
   const title = text(input.title), body = text(input.body);
   const board = forumBoards.find((item) => item.name === input.category);
@@ -36,7 +46,7 @@ export function validatePost(input) {
   if (!title || title.length > 100 || !body || body.length > 5000 || !board || (font !== null && font !== "sans" && font !== "serif") ||
       ![14, 16, 18].includes(fontSize) || !Array.isArray(images) || images.length > 5 || !images.every(validImage)) throw new ForumError("請檢查標題、內文、分類與圖片連結。");
   if (input.id !== undefined && !validPostId(input.id)) throw new ForumError("文章編號不正確。");
-  return { title, body, board, font, fontSize, images };
+  return { title, body, board, font, fontSize, images, ...discussionLocation(input) };
 }
 export function validateColumn(input) {
   const title = text(input.title), excerpt = text(input.excerpt), body = text(input.body);
@@ -56,8 +66,9 @@ export function validateDraft(kind, input) {
   const body = typeof input.body === 'string' ? input.body : '';
   if (title.length > 100 || body.length > 5000) throw new ForumError('草稿超過字數上限。');
   if (kind === 'discussion') {
-    const checked = validatePost({ ...input, title: title.trim() || '草稿', body: body.trim() || '草稿', id: undefined });
-    return { title, body, category: checked.board.name, images: checked.images, font: checked.font ?? 'sans', fontSize: checked.fontSize };
+    const location = discussionLocation(input, true);
+    const checked = validatePost({ ...input, county: undefined, regionCode: location.regionCode, title: title.trim() || '草稿', body: body.trim() || '草稿', id: undefined });
+    return { title, body, category: checked.board.name, images: checked.images, font: checked.font ?? 'sans', fontSize: checked.fontSize, county: location.county, regionCode: location.regionCode ?? '' };
   }
   if (kind === 'column') {
     const excerpt = typeof input.excerpt === 'string' ? input.excerpt : '';

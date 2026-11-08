@@ -35,11 +35,19 @@ npm run test:supabase
 
 `editorial_articles` 管理首頁與專欄精選：`published` 決定是否公開，`sort_order` 決定順序，標題／簡介／Markdown 內文均從資料庫讀取。可透過 Supabase Table Editor 或具有版主／管理員權限的資料 API 維護。資料修改後重新載入頁面即可看到，不需要重新建置網站。
 
+`00004_article_interactions.sql` 補上文章互動：討論文章沿用 `replies`／`post_likes`，在地專欄與編輯精選使用 `column_replies`／`column_likes`，以外鍵綁定文章。訪客可閱讀公開回應，登入會員只能以自己身分新增回應、按讚及取消自己的讚；每位會員每篇文章只計一次讚。已鎖定的討論不能新增回應，已刪除文章與未公開精選不能從互動 API 存取。新增資料表有 RLS 與明確的欄位權限。
+
+討論文章網址為 `/discussions/[id]`，在地專欄為 `/columns/community/[id]`，編輯精選為 `/columns/[slug]`。所有文章頁都有回應、按讚及分享；分享會複製固定網址，若瀏覽器不允許存取剪貼簿，則提供可選取的連結欄位。`/api/article-interactions` 以 `kind=post|column|editorial` 與 `id` 取得互動，每次載入 30 則回應，`cursor` 取得下一頁；POST 支援 `reply`（1–2000 字）與 `like`（明確的布林狀態）。
+
+`00005_optional_post_location.sql` 在討論文章加入選填的 `region_code`，外鍵對應既有 368 個行政區。發文時預設「不公開位置」，選擇縣市與鄉鎮市區後才會出現圖釘，舊文章不會自動加入地圖。草稿可先只選縣市；正式發表需完成鄉鎮市區或取消位置。編輯文章可移動或取消圖釘，作者權限沿用原本的 RLS。`/api/map-posts` 每頁回傳至多 200 篇未刪除且有位置的文章摘要，提供 `nextCursor`；不回傳全文或私人草稿。地圖將其與在地專欄合併，以不同顏色標示並連至各自閱讀頁。取消位置會同步清除廣域地區；有位置時由資料庫同步北／中／南／東／離島分類，保留討論區原有的地區篩選。
+
 `member_drafts` 每位會員各保留一份討論草稿與一份專欄草稿，只有本人可讀寫；未登入可暫時撰寫，儲存草稿時需登入。表單恢復雲端草稿時不覆蓋已開始輸入的內容。正式發表新文章時，資料庫 trigger 在同一筆交易清除對應草稿，發表失敗則保留草稿。`post_bookmarks` 保存每位會員自己的收藏，其他會員與版主無法查看。
 
 `node scripts/test-live-supabase.mjs` 在完整回滾的交易中驗證雲端文章、字體字級、專欄地點與 RLS。測試資料不提交，也不寄送郵件。
 
 網站啟動後，`node scripts/test-cloud-workflows.mjs` 會建立隨機臨時 Auth 測試帳號，透過真實登入 session 驗證草稿、收藏、發表、跨作者權限及即時精選內容讀取，最後刪除本次 UUID 對應的帳號與內容；不寄送郵件，不更動既有帳號。
+
+測試也涵蓋三種文章的回應、按讚／取消、跨 session 狀態、回應分頁、鎖定與下架保護。若本機使用不同連接埠，傳入測試網址，例如 `node scripts/test-cloud-workflows.mjs http://127.0.0.1:3001`。
 
 ## 註冊、信箱驗證及管理員
 

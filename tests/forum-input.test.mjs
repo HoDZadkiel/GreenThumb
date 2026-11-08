@@ -18,6 +18,20 @@ test("columns reject invented regions and callback redirects stay local", () => 
   for (const url of ["//evil.test", "https://evil.test", "/\\evil.test", "/\n/evil.test", "/\t/evil.test"]) assert.equal(safeNext(url), "/");
   assert.equal(safeNext("/columns?from=email"), "/columns?from=email");
 });
+
+test("discussion locations are optional, validate districts, and allow unfinished draft selections", () => {
+  const input = { title: "標題", body: "內容", category: "觀葉植物", images: [] };
+  for (const regionCode of [undefined, null, ""]) assert.equal(validatePost({ ...input, regionCode }).regionCode, null);
+  assert.equal(validatePost({ ...input, county: "臺北市", regionCode: "63000030" }).regionCode, "63000030");
+  assert.equal(validatePost({ ...input, regionCode: "63000030" }).county, "臺北市");
+  for (const location of [{ regionCode: "fake" }, { regionCode: 63000030 }, { regionCode: [] }, { county: "臺南市", regionCode: "63000030" }, { county: "臺北市", regionCode: "" }, { county: "不存在" }]) {
+    assert.throws(() => validatePost({ ...input, ...location }));
+  }
+  assert.equal(validateDraft("discussion", { ...input, county: "臺北市", regionCode: "" }).county, "臺北市");
+  assert.equal(validateDraft("discussion", { ...input, county: "臺北市", regionCode: "63000030" }).regionCode, "63000030");
+  assert.equal(validateDraft("discussion", input).regionCode, "");
+  assert.throws(() => validateDraft("discussion", { ...input, county: "臺南市", regionCode: "63000030" }));
+});
 test('cloud drafts accept unfinished content, preserve formatting, and reject forged data',()=>{
   const payload={title:'',body:'未完成',category:'觀葉植物',images:[],font:'serif',fontSize:18};
   assert.equal(validateDraft('discussion',payload).font,'serif');

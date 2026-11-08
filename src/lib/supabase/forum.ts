@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ForumUser } from "@/components/community/community-session";
 import type { ForumPost } from "@/lib/trial-forum-client";
-import type { ExpertColumn, ExpertColumnSummary } from "@/lib/expert-columns";
+import type { ArticlePin, ExpertColumn, ExpertColumnSummary } from "@/lib/expert-columns";
 import { ForumError, validateColumn, validatePost, validColumnId, validPostId } from "@/lib/forum-input.mjs";
 
 export function databaseError(error: { code?: string; message?: string }) {
@@ -21,14 +21,14 @@ export async function currentUser(client: SupabaseClient): Promise<ForumUser | n
 type PostRow = {
   id: number | string; author_id: string; title: string; body: string; images: string[];
   font: "sans" | "serif" | null; font_size: 14 | 16 | 18;
-  created_at: string; like_count: number; reply_count: number; region: string | null; post_type: string;
+  created_at: string; like_count: number; reply_count: number; region: string | null; region_code: string | null; post_type: string;
   board: { name: string } | null; profile: { display_name: string } | null;
 };
-const postSelect = "id,author_id,title,body,images,font,font_size,created_at,like_count,reply_count,region,post_type,board:boards!posts_board_id_fkey(name),profile:profiles!posts_author_id_fkey(display_name)";
+const postSelect = "id,author_id,title,body,images,font,font_size,created_at,like_count,reply_count,region,region_code,post_type,board:boards!posts_board_id_fkey(name),profile:profiles!posts_author_id_fkey(display_name)";
 const postResult = (row: PostRow): ForumPost => ({
   id: String(row.id), title: row.title, body: row.body, category: row.board?.name ?? "觀葉植物",
   images: row.images, font: row.font, fontSize: row.font_size, authorId: row.author_id, author: row.profile?.display_name ?? "會員",
-  createdAt: row.created_at, likeCount: row.like_count, replyCount: row.reply_count, region: row.region, postType: row.post_type,
+  createdAt: row.created_at, likeCount: row.like_count, replyCount: row.reply_count, region: row.region, regionCode: row.region_code, postType: row.post_type,
 });
 export async function listPosts(client: SupabaseClient, cursor: string | null = null) {
   if (cursor && !validPostId(cursor)) throw new ForumError("文章分頁編號不正確。");
@@ -51,12 +51,28 @@ export async function savePost(client: SupabaseClient, user: ForumUser | null, i
   const { data: board, error: boardError } = await client.from("boards").select("id").eq("slug", fields.board.slug).maybeSingle();
   if (boardError) throw databaseError(boardError);
   if (!board) throw new ForumError("植物看板尚未建立，請完成資料庫 migration。", 503);
-  const values = { title: fields.title, body: fields.body, board_id: board.id, images: fields.images, font: fields.font, font_size: fields.fontSize };
+  const values = { title: fields.title, body: fields.body, board_id: board.id, images: fields.images, font: fields.font, font_size: fields.fontSize,
+    ...(input.regionCode !== undefined ? { region_code: fields.regionCode } : {}) };
   const query = input.id !== undefined ? client.from("posts").update(values).eq("id", input.id) : client.from("posts").insert({ ...values, author_id: user.id });
   const { data, error } = await query.select(postSelect).maybeSingle<PostRow>();
   if (error) throw databaseError(error);
   if (!data) throw new ForumError("找不到文章，或你沒有編輯權限。", 403);
   return postResult(data);
+}
+
+export async function listMappedPosts(client: SupabaseClient, cursor: string | null = null) {
+  if (cursor !== null && !validPostId(cursor)) throw new ForumError("地圖文章分頁編號不正確。");
+  let query = client.from("posts").select("id,title,region_code,created_at,profile:profiles!posts_author_id_fkey(display_name)")
+    .is("deleted_at", null).not("region_code", "is", null).order("id", { ascending: false }).limit(201);
+  if (cursor) query = query.lt("id", cursor);
+  const { data, error } = await query.returns<{ id: string | number; title: string; region_code: string; created_at: string; profile: { display_name: string } | null }[]>();
+  if (error) throw databaseError(error);
+  const rows = data.slice(0, 200);
+  const pins: ArticlePin[] = rows.map(row => ({
+    id: `post:${row.id}`, kind: "post", title: row.title, author: row.profile?.display_name ?? "會員",
+    regionCode: row.region_code, createdAt: row.created_at, href: `/discussions/${row.id}`,
+  }));
+  return { pins, nextCursor: data.length > 200 ? String(rows.at(-1)!.id) : null };
 }
 type ColumnRow = {
   id: string; author_id: string; title: string; excerpt: string; body?: string; region_code: string;

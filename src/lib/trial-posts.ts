@@ -6,6 +6,7 @@ export type TrialPost = {
   images: string[];
   font?: ArticleFont | null;
   fontSize?: ArticleFontSize;
+  regionCode?: string | null;
 };
 
 export const articleFonts = { sans: "黑體 · Noto Sans TC", serif: "宋體 · Noto Serif TC" } as const;

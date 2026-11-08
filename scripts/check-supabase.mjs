@@ -11,6 +11,14 @@ for (const [table, columns] of [["profiles", "id,display_name,role"], ["boards",
   if (error) failed = true;
 }
 const { data: boards, error: boardError } = await client.from("boards").select("slug");
+for (const table of ["column_replies", "column_likes"]) {
+  const { error, status } = await client.from(table).select("id,column_id,editorial_slug").limit(0);
+  console.log(`${error ? "FAIL" : "PASS"} ${table}: HTTP ${status}${error ? ` (${error.code ?? "network"})` : ""}`);
+  if (error) failed = true;
+}
+const { error: locationError } = await client.from("posts").select("region_code").limit(0);
+console.log(`${locationError ? "FAIL" : "PASS"} optional post location`);
+if (locationError) failed = true;
 const { count, error: regionError } = await client.from("taiwan_regions").select("code", { count: "exact", head: true });
 const seeded = !boardError && !regionError && ["foliage", "succulents", "herbs", "flowers"].every(slug => boards.some(b => b.slug === slug)) && count === 368;
 console.log(`${seeded ? "PASS" : "FAIL"} seeds: four boards and 368 regions`);

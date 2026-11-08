@@ -19,7 +19,7 @@ async function EditorialColumns() {
 
   return (
     <>
-      <header className="columns-page-intro"><p className="eyebrow">GREENTHUMB FIELD NOTES</p><h1>種植專欄</h1><p>從台灣地圖找到在地達人，讀一篇和你生活在同樣氣候裡的種植故事。</p></header>
+      <header className="columns-page-intro"><p className="eyebrow">GREENTHUMB FIELD NOTES</p><h1>種植專欄</h1><p>從台灣地圖找到在地專欄與討論，讀一篇和你生活在同樣氣候裡的種植故事。</p></header>
       <ExpertColumnMap />
       {featured && <section className="editorial-hero" aria-labelledby="featured-column-title">
         <div className="editorial-hero-copy">
