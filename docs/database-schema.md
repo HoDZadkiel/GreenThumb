@@ -1,5 +1,7 @@
 # 資料表設計（MVP）
 
+> 本文件的 SQL 為最初的 `00001` 基礎設計。網站自管 Google／Email 登入與新的會員外鍵、RLS 身分來源由 `00006_portable_auth.sql` 接續調整，參見 [會員登入設定](authentication.md)。
+
 範圍：會員、發文、回覆、圖片上傳、物種標籤、自由標籤、地區、按讚與最佳解答，外加從第一天就需要的檢舉功能。
 資料庫：Supabase PostgreSQL。會員帳號由 Supabase Auth 管理（`auth.users`），本文件只定義 `public` schema。
 

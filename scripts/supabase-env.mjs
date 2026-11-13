@@ -11,17 +11,19 @@ export function databaseUrl() {
   let target;
   try { target = new URL(value); } catch { throw new Error("DATABASE_URL 格式不正確。"); }
   if (!["postgres:", "postgresql:"].includes(target.protocol)) throw new Error("DATABASE_URL 必須是 PostgreSQL URI。");
-  let ref;
-  try { ref = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname.split(".")[0]; }
-  catch { throw new Error("NEXT_PUBLIC_SUPABASE_URL 格式不正確。"); }
-  const matchesProject = target.hostname === `db.${ref}.supabase.co` ||
-    (target.hostname.endsWith(".pooler.supabase.com") && decodeURIComponent(target.username).endsWith(`.${ref}`));
-  if (!matchesProject) throw new Error("DATABASE_URL 與目前的 Supabase Project URL 不屬於同一個專案。");
+  if (target.hostname.endsWith(".supabase.co") || target.hostname.endsWith(".pooler.supabase.com")) {
+    let ref;
+    try { ref = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname.split(".")[0]; }
+    catch { throw new Error("請保留 NEXT_PUBLIC_SUPABASE_URL 供管理腳本核對資料庫專案。"); }
+    const matchesProject = target.hostname === `db.${ref}.supabase.co` ||
+      (target.hostname.endsWith(".pooler.supabase.com") && decodeURIComponent(target.username).endsWith(`.${ref}`));
+    if (!matchesProject) throw new Error("DATABASE_URL 與目前的 Supabase Project URL 不屬於同一個專案。");
+  }
   return value;
 }
 export function safeMessage(error) {
   let message = String(error.message ?? error);
-  for (const name of ["DATABASE_URL", "SUPABASE_DB_PASSWORD", "SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"]) {
+  for (const name of ["DATABASE_URL", "APP_DATABASE_URL", "BETTER_AUTH_SECRET", "GOOGLE_CLIENT_SECRET", "SMTP_PASSWORD", "SUPABASE_DB_PASSWORD", "SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"]) {
     const value = process.env[name];
     if (value) message = message.replaceAll(value, "[redacted]").replaceAll(encodeURIComponent(value), "[redacted]");
   }

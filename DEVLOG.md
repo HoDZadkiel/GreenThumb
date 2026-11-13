@@ -190,3 +190,36 @@
 
 ### 待辦事項（TODO）
 - 使用真實信箱驗收 Supabase 註冊及驗證信送達；對外開放前確認 Site URL／Redirect URLs 與自訂 SMTP。舊本機管理員需改用已驗證的 Supabase 會員，再指定管理員權限。
+
+
+## 2026-11-13
+
+### 修改內容（Changes）
+- Google 登入改用網站內的 Better Auth，Supabase 僅提供 PostgreSQL；移除執行中的 Supabase Auth／Data API 模組，論壇、專欄、草稿、收藏與互動改為標準 SQL。
+- 加入 Gmail SMTP 六位數登入碼、雜湊儲存、過期／一次性／嘗試限制與資料庫速率限制；預設關閉 Email 入口，另提供不寄信的 mail:check。
+- Google 使用獨立視窗，保留原頁面編輯內容；會員可設定公開暱稱，不自動公開 Google 姓名。
+- 新增 00006_portable_auth.sql、通用 PostgreSQL migration runner、受限執行帳號初始化與新資料庫檢查指令；既有 UUID 與文章歸屬保留，RLS 持續啟用。
+- 新增 Google OAuth／Gmail 設定文件，更新 README、資料表文件、環境變數範例及專案約定。本機已準備空白憑證欄位與隨機 session 密鑰，未輸出機密。
+- 使用者明確同意後，已對目前 Supabase PostgreSQL 套用 `00006_portable_auth.sql`、建立 `greenthumb_app` 受限登入帳號，並將網站執行連線安全寫入 `.env.local`。
+- 依使用者要求直接在 Supabase PostgreSQL 建立 `test01` 至 `test03` 三組一般測試會員，建立 `gt_user`／`gt_account` 及公開 profile；原始帳密保存於 Git 忽略的 `.local/test-accounts.json`，資料庫只儲存 Better Auth 相容的密碼雜湊。
+- 開放既有會員以 Email／密碼登入，加入網站表單、錯誤提示、資料庫登入頻率限制與 `AUTH_PASSWORD_ENABLED` 開關；公開帳密註冊保持關閉，沿用原三組測試帳密。
+- 補齊 Vercel Production 環境變數設定文件；程式更新將推送既有 `origin/main`，本機帳密檔及 `.env.local` 不上傳。
+
+### 問題與解法（Problems & Solutions）
+- 本機隔離測試通過 Google RSA token、PKCE、一次性 state、issuer／audience／期限／簽章拒絕、登出、會員與論壇權限、OTP 安全限制，以及舊會員／文章遷移保留；不連 Google、不寄信、不寫入既有資料庫。
+- 既有 schema、歷史 Supabase migration 與專欄測試通過；TypeScript、ESLint、正式建置通過。瀏覽器確認未設定憑證時停用 Google 按鈕，SMTP 入口隱藏；畫面位於 .local/ui-review/google-login-pending.png。
+- 遠端資料庫原有根憑證不在 Node 的預設信任庫；下載供應商公開 CA，新增 DATABASE_CA_FILE／DATABASE_CA_CERT，維持完整 TLS 驗證。唯讀 migration 預覽確認只有 00006 待套用。
+- 自動核准審查拒絕執行 db:setup-auth，理由是需明確授權現有資料庫的會員外鍵、RLS 及登入角色變更；沒有套用 migration 或建立資料庫角色。
+- 使用者後續明確同意執行遷移；六張既有會員與內容資料表的筆數及完整內容指紋均與遷移前相同，保留 1 位會員、1 篇討論及 3 篇編輯精選。
+- 修正初始化腳本的 PostgreSQL `format` 參數型別；先確認角色沒有高權限，再只設定 LOGIN／密碼，避免受管管理角色不能重述 NOSUPERUSER 屬性的限制。
+- 真實雲端資料庫驗證受限連線、全表 RLS、訪客無法讀取 session、會員草稿寫入與拒絕提權、連線池身分清除；測試交易完整回滾，沒有保留測試資料。migration history 已包含 `00001` 至 `00006`。
+- 啟用後正式建置通過；本機論壇、會員 session、專欄、地圖、收藏 API 與首頁／討論／專欄／撰寫頁皆回應 HTTP 200。保留僅綁定本機的 `http://localhost:3000` 試用網站；Google 尚待憑證，SMTP 維持關閉。
+- 三組測試會員均已核對一般會員權限及原始密碼與雜湊相符；帳密與初始化腳本均位於 `.local/`，未輸出密碼至對話或日誌。此次僅建立資料，未新增網站帳密登入入口，未寄送郵件。
+- 修正 Cache Components 對 NextRequest 的 Proxy 包裝造成 Undici 複製請求失敗；以網址、method 與 headers 重建已驗證的請求，新增實際 Proxy 請求回歸驗證。
+- 帳密／Google／OTP 共五項整合測試、TypeScript、ESLint 與正式建置通過。正式啟動模式驗證三組測試帳號登入、會員狀態、論壇／私人草稿權限、登出及 session 失效；錯誤密碼被拒絕，沒有寄信或變更原密碼。
+- 瀏覽器確認登入視窗顯示 Email、密碼與帳密登入按鈕，Google 未設定時維持停用；畫面保存於 `.local/ui-review/password-login.png`。
+
+### 待辦事項（TODO）
+- 使用者尚未建立 Google OAuth Client ID／Secret；依 docs/authentication.md 建立並填入 .env.local 後，以真實 Google 帳號驗收會員功能。
+- Gmail SMTP 待填入專用寄件帳號與應用程式密碼，再測試連線及真實送達；測試期間 AUTH_EMAIL_ENABLED=false。
+- Vercel 尚未連接，需配置 Production 的受限資料庫連線、session 密鑰、正式網址與公開 CA 後驗收線上帳密登入；本機設定不會隨 GitHub 推送同步。

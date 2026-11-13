@@ -1,19 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { FormEvent, ReactNode } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, Bookmark, ChevronDown, ChevronRight, Flower2, Heart, LayoutList, Leaf, List, MapPin, MessageCircle, PenLine, Plus, Search, SlidersHorizontal, Sprout, X } from "lucide-react";
 
 import { topics } from "@/lib/community-content";
 import { getRegion } from "@/lib/expert-columns";
-import { forumAction, type ForumPost } from "@/lib/trial-forum-client";
+import type { ForumPost } from "@/lib/trial-forum-client";
 import { memberAction } from "@/lib/member-client";
 import { PostEditor } from "./post-editor";
 import { CommunitySessionContext, type ForumUser } from "./community-session";
+import { MemberAccess, type LoginMethods } from "./member-access";
+import { authClient } from "@/lib/auth/client";
 
 type Post = {id:string;title:string;excerpt:string;category:string;type:string;author:string;authorId:string;region:string;location:string;time:string;likes:number;replies:number;tags:string[];color:string;trial:ForumPost};
- type Mode = "about" | "login" | "register";
+ type Mode = "about" | "login" | "profile";
  function toPostPreview(post:ForumPost):Post {
   const regions:Record<string,string>={north:"北部",central:"中部",south:"南部",east:"東部",island:"離島",indoor:"室內",highland:"高山"};
   const types:Record<string,string>={question:"發問",share:"分享",guide:"教學"};
@@ -39,11 +41,10 @@ export function CommunityHome({ view = "home", children, editId }: { view?: Comm
   const [forumPosts, setForumPosts] = useState<ForumPost[]>([]);
   const [pending, setPending] = useState(false);
   const [forumError, setForumError] = useState("");
-  const [authNotice, setAuthNotice] = useState("");
+  const [loginMethods, setLoginMethods] = useState<LoginMethods>({ google: false, email: false, password: false });
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [published, setPublished] = useState<ForumPost | null>(null);
   const editing = forumPosts.find((post) => post.id === editId);
-  const [storageError, setStorageError] = useState("");
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     let active = true;
@@ -57,9 +58,10 @@ export function CommunityHome({ view = "home", children, editId }: { view?: Comm
       }
       if (!active) return;
       setUser(data.user);
+      setLoginMethods(data.auth);
       setForumPosts(data.posts);
       setNextCursor(data.nextCursor);
-      if (new URLSearchParams(window.location.search).has("auth_error")) setForumError("信箱驗證連結無效或已過期，請重新申請驗證或登入。");
+      if (new URLSearchParams(window.location.search).has("auth_error")) setForumError("登入連結已失效，請重新登入。");
     }).catch((error) => {
       if (active) setForumError(error.message || "無法載入會員狀態與社群文章，請重新整理。");
     }).finally(() => {
@@ -78,8 +80,6 @@ export function CommunityHome({ view = "home", children, editId }: { view?: Comm
 
   function open(nextMode: Mode) {
     setMode(nextMode);
-    setStorageError("");
-    setAuthNotice("");
     if (!dialog.current?.open) dialog.current?.showModal();
   }
 
@@ -98,22 +98,10 @@ export function CommunityHome({ view = "home", children, editId }: { view?: Comm
     catch(error){setForumError((error as Error).message);}finally{setBookmarkPending(null);}
   }
 
-  async function submitAuth(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const fields = Object.fromEntries(new FormData(event.currentTarget));
-    setStorageError("");
-    setAuthNotice("");
-    setPending(true);
-    try {
-      const result = await forumAction(mode, fields);
-      setUser(result.user ?? null);
-      if (result.message) { setAuthNotice(result.message); return; }
-      dialog.current?.close();
-    } catch (error) {
-      setStorageError((error as Error).message);
-    } finally {
-      setPending(false);
-    }
+  function signedIn(member: ForumUser) {
+    setUser(member);
+    if (member.name === "新會員") setMode("profile");
+    else dialog.current?.close();
   }
 
   async function loadMorePosts() {
@@ -133,7 +121,8 @@ export function CommunityHome({ view = "home", children, editId }: { view?: Comm
     setPending(true);
     setForumError("");
     try {
-      await forumAction("logout");
+      const result = await authClient.signOut();
+      if (result.error) throw new Error("無法登出，請稍後再試。");
       setUser(null);
     } catch (error) {
       setForumError((error as Error).message);
@@ -155,7 +144,7 @@ export function CommunityHome({ view = "home", children, editId }: { view?: Comm
         <div className="header-inner">
           <Link className="brand" href="/" aria-label="GreenThumb 首頁"><span className="brand-mark"><Sprout size={27} strokeWidth={1.7} /></span><span>GreenThumb<span className="brand-sub">一起，把日子種好。</span></span></Link>
           <div className="header-actions">
-            {user && <span className="member-name" title={user.name}>{user.role === "admin" ? "管理員" : user.name}</span>}
+            {user && <button className="member-name" title="設定社群暱稱" onClick={() => open("profile")}>{user.role === "admin" ? "管理員" : user.name}</button>}
             <button className="quiet-button" disabled={loadingForum || pending} onClick={() => user ? logout() : open("login")}>{user ? "登出" : "登入"}</button>
             {view !== "write" && view !== "expert-write" && <Link className="primary-button" href={writeHref}><PenLine size={16} />發表文章</Link>}
           </div>
@@ -239,25 +228,8 @@ export function CommunityHome({ view = "home", children, editId }: { view?: Comm
       <footer className="site-footer"><Link className="footer-brand" href="/"><Sprout size={21} /> GreenThumb</Link><button className="quiet-button" onClick={() => open("about")}>關於社群</button><span>© 2026 GreenThumb <span className="footer-separator">/</span> Made for plant people.</span></footer>
 
       <dialog ref={dialog} className="community-dialog" aria-labelledby="dialog-title" onClick={(event) => { if (event.target === event.currentTarget) dialog.current?.close(); }}><button className="dialog-close" aria-label="關閉視窗" onClick={() => dialog.current?.close()}><X size={20} /></button>
-        {mode === "login" || mode === "register" ? (
-          <>
-            <h2 id="dialog-title">{mode === "register" ? "註冊帳號" : "登入 GreenThumb"}</h2>
-
-            <form key={mode} onSubmit={submitAuth}>
-              {mode === "register" && <label>暱稱<input name="name" autoComplete="nickname" required maxLength={40} /></label>}
-              <label>Email<input name="email" type="email" autoComplete="username" required maxLength={254} /></label>
-              <label>密碼<input name="password" type="password" autoComplete={mode === "register" ? "new-password" : "current-password"} required minLength={mode === "register" ? 12 : undefined} maxLength={128} /></label>
-              {mode === "register" && <p className="dialog-footnote">密碼至少 12 字元，註冊後請到信箱完成驗證。</p>}
-              {authNotice && <p role="status">{authNotice}</p>}
-              {storageError && <p role="alert">{storageError}</p>}
-              <div className="trial-actions">
-                <button className="primary-button" disabled={pending}>{mode === "register" ? "註冊帳號" : "登入"}</button>
-                <button className="trial-draft-button" type="button" disabled={pending} onClick={() => open(mode === "register" ? "login" : "register")}>
-                  {mode === "register" ? "已有帳號？登入" : "建立帳號"}
-                </button>
-              </div>
-            </form>
-          </>
+        {mode === "login" || mode === "profile" ? (
+          <MemberAccess key={mode} user={user} methods={loginMethods} onSignedIn={signedIn} />
         ) : <><p className="eyebrow">HELLO, PLANT PEOPLE</p><h2 id="dialog-title">喜歡植物，就有聊不完的事。</h2><p>GreenThumb 想把散落的種植經驗，慢慢累積成人人都能查找的知識。無論你剛帶回第一盆植物，或已經照顧了一整座陽台，都歡迎來交換心得。</p><div className="article-note"><Heart size={22} /><p>分享實際環境與觀察、友善提問，並尊重不同經驗。每一個認真照顧植物的人，都值得被好好回應。</p></div></>}
       </dialog>
     </div>

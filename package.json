@@ -10,8 +10,11 @@
     "test:schema": "node --experimental-vm-modules tests/schema.test.mjs docs/database-schema.md",
     "test:columns": "node --test tests/expert-columns.test.mjs",
     "test:supabase": "node --test tests/supabase-schema.test.mjs tests/forum-input.test.mjs",
-    "db:push": "node scripts/push-supabase.mjs",
-    "db:check": "node scripts/check-supabase.mjs",
+    "db:push": "node scripts/migrate-database.mjs",
+    "db:setup-auth": "node scripts/setup-auth.mjs",
+    "test:auth": "node --import tsx --test tests/portable-auth.test.mjs",
+    "db:check": "node scripts/check-database.mjs",
+    "mail:check": "node scripts/check-smtp.mjs",
     "db:admin": "node scripts/set-supabase-admin.mjs"
   },
   "dependencies": {
@@ -20,12 +23,15 @@
     "@fontsource-variable/noto-serif-tc": "^5.3.1",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.118.0",
+    "better-auth": "^1.7.22",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.1",
     "leaflet": "^1.9.4",
     "leaflet.markercluster": "^1.5.3",
     "lucide-react": "^1.65.0",
     "next": "16.4.3",
+    "nodemailer": "^10.5.0",
+    "pg": "^8.23.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-markdown": "^10.1.0",
@@ -39,6 +45,8 @@
     "@types/leaflet": "^1.9.22",
     "@types/leaflet.markercluster": "^1.5.6",
     "@types/node": "^20",
+    "@types/nodemailer": "^8.0.2",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
@@ -46,6 +54,7 @@
     "postgres": "^4.1.0",
     "supabase": "^3.0.0",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   }
 }

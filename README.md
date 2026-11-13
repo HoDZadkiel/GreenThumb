@@ -22,8 +22,9 @@
 ```mermaid
 flowchart LR
   使用者 --> Next.js[Next.js on Vercel]
-  Next.js --> DB[(Supabase Postgres)]
-  Next.js --> Auth[Supabase Auth]
+  Next.js --> DB[(PostgreSQL，目前由 Supabase 託管)]
+  Next.js --> Auth[Better Auth + 帳密／Google 登入]
+  Auth --> SMTP[Gmail SMTP 備援，預設關閉]
   Next.js --> Images[ImgBB 圖片外連]
 ```
 
@@ -36,13 +37,13 @@ npm ci
 npm run dev
 ```
 
-在 `.env.local` 設定 Supabase Project URL 與公開金鑰後，在瀏覽器開啟 `http://localhost:3000`。會員、登入、討論文章及在地專欄均使用 Supabase；本機 SQLite 保留為切換前備份。建表、驗證信、管理員及部署步驟見 [Supabase 設定](docs/supabase-setup.md)。
+依 [會員登入設定](docs/authentication.md) 在 `.env.local` 設定資料庫管理連線，確認後執行 `npm run db:setup-auth` 並重啟網站。既有帳密會員可直接登入，Google 登入另需 OAuth 憑證。在瀏覽器開啟 `http://localhost:3000`，網址需與 `BETTER_AUTH_URL` 一致。會員與 session 由網站管理，論壇內容透過受限帳號直接讀寫 PostgreSQL；目前可使用 Supabase 託管的資料庫，本機 SQLite 保留為切換前備份。
 
 專欄頁 `/columns` 提供在地種植地圖，同時顯示達人專欄與選填位置的討論文章。發表討論時可選縣市與鄉鎮市區，也可以不公開位置；有選位置才會出現圖釘，之後可編輯或取消。地圖的「寫在地專欄」可發表專欄，圖釘只標示行政區代表位置。實作及資料來源見 [台灣達人地圖](docs/taiwan-expert-map.md)。
 
 討論文章 `/discussions/[id]`、在地專欄 `/columns/community/[id]` 與編輯精選 `/columns/[slug]` 都有獨立閱讀頁，支援登入後回應、按讚／取消讚，以及複製固定網址分享。首頁精選、文章、互動、會員草稿與收藏都從 Supabase 讀寫，不混入示範文章或本機內容。
 
-執行 `npm run db:push` 套用尚未執行的 migration（包含文章互動與選填位置），`npm run db:check` 確認資料表，`npm run test:supabase` 執行資料與權限測試。網站啟動後可用 `node scripts/test-cloud-workflows.mjs http://127.0.0.1:3000` 驗證真實登入、草稿、互動及圖釘；腳本會清除本次建立的臨時測試資料。
+執行 `npm run db:push -- --dry-run` 預覽 migration，`npm run db:push` 套用，`npm run db:check` 檢查資料表及權限。`npm run test:auth` 在隔離 PostgreSQL 中驗證 Google OAuth、session、草稿、發表、收藏與互動；模擬 Google 回應且不寄信。`npm run test:supabase` 保留歷史 migration 回歸測試。真實 Google 登入與 Gmail 收件的驗收步驟見 [會員登入設定](docs/authentication.md)。
 
 ## 📁 專案結構
 

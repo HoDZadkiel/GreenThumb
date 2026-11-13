@@ -1,5 +1,7 @@
 # Supabase 連線與維護
 
+> 此文件記錄先前的 Supabase Auth／Data API 架構。新的 Google 登入與 Gmail SMTP 使用網站自管驗證及標準 PostgreSQL；目前設定與遷移步驟請依 [會員登入設定](authentication.md)。下列 Supabase Auth 註冊、驗證信與測試腳本不適用於新架構。
+
 網站會員、登入、討論文章、在地達人專欄、編輯精選、會員草稿與收藏均使用 Supabase Auth／PostgreSQL。網站不再讀寫本機 SQLite、localStorage 或 sessionStorage；舊 `.local/forum.sqlite` 與瀏覽器資料不刪除，但不再作為網站資料來源。網站只保留版型、操作文字、基本分類與行政區選項。
 
 ## 環境變數

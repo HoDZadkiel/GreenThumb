@@ -8,8 +8,8 @@ import { CommunityHome } from "@/components/community/community-home";
 import { ArticleMarkdown } from "@/components/community/article-markdown";
 import { ArticleInteractions } from "@/components/community/article-interactions";
 import { ExpertColumnEditLink } from "@/components/columns/expert-column-edit-link";
-import { createClient } from "@/lib/supabase/server";
-import { getColumn } from "@/lib/supabase/forum";
+import { createClient } from "@/lib/db/server";
+import { getColumn } from "@/lib/db/forum";
 import { getRegion } from "@/lib/expert-columns";
 
 const readColumn = cache(async (id: string) => getColumn(await createClient(), id));

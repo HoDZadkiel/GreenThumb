@@ -8,8 +8,8 @@ import { CommunityHome } from "@/components/community/community-home";
 import { ArticleMarkdown } from "@/components/community/article-markdown";
 import { ArticleInteractions } from "@/components/community/article-interactions";
 import { DiscussionEditLink } from "@/components/community/discussion-edit-link";
-import { createClient } from "@/lib/supabase/server";
-import { getPost } from "@/lib/supabase/forum";
+import { createClient } from "@/lib/db/server";
+import { getPost } from "@/lib/db/forum";
 import { validPostId } from "@/lib/forum-input.mjs";
 import { getRegion } from "@/lib/expert-columns";
 

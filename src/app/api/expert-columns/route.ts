@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { currentUser, getColumn, listColumns, saveColumn } from "@/lib/supabase/forum";
+import { createClient } from "@/lib/db/server";
+import { currentUser, getColumn, listColumns, saveColumn } from "@/lib/db/forum";
 import { ForumError } from "@/lib/forum-input.mjs";
 import { failure, json, readInput } from "@/lib/forum-http";
 export async function GET(request: NextRequest) {

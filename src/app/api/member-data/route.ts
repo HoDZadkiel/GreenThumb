@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { currentUser } from '@/lib/supabase/forum';
-import { bookmarkIds,readDraft,writeMemberData } from '@/lib/supabase/member-data';
+import { createClient } from '@/lib/db/server';
+import { currentUser } from '@/lib/db/forum';
+import { bookmarkIds,readDraft,writeMemberData } from '@/lib/db/member-data';
 import { failure,json,readInput } from '@/lib/forum-http';
 import { ForumError } from '@/lib/forum-input.mjs';
 export async function GET(request: NextRequest) {

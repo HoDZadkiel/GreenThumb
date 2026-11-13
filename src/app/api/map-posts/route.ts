@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { listMappedPosts } from "@/lib/supabase/forum";
+import { createClient } from "@/lib/db/server";
+import { listMappedPosts } from "@/lib/db/forum";
 import { failure, json } from "@/lib/forum-http";
 
 export async function GET(request: NextRequest) {

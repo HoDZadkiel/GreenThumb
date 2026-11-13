@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-import { currentUser } from "@/lib/supabase/forum";
-import { articleTarget, getInteractions, interact } from "@/lib/supabase/article-interactions";
+import { createClient } from "@/lib/db/server";
+import { currentUser } from "@/lib/db/forum";
+import { articleTarget, getInteractions, interact } from "@/lib/db/article-interactions";
 import { failure, json, readInput } from "@/lib/forum-http";
 
 export async function GET(request: NextRequest) {

@@ -150,6 +150,13 @@ html { scroll-behavior: smooth; scroll-padding-top: 28px; }
 .empty-state p { font-size: 12px; margin: 7px 0 17px; }
 .community-dialog { margin: auto; padding: 38px; max-width: 580px; width: calc(100% - 32px); max-height: calc(100dvh - 40px); overflow: auto; border: 1px solid #e1e5d6; border-radius: 12px; background: var(--paper); color: var(--ink); }
 .community-dialog::backdrop { background: #192b2266; backdrop-filter: blur(3px); }
+.google-signin-button { display: block; width: 100%; border: 1px solid #747775; border-radius: 6px; padding: 12px 20px; background: white; color: #1f1f1f; font-size: 14px; font-weight: 500; }
+.google-signin-button:hover:not(:disabled) { background: #f1f4ee; }
+.google-signin-button:disabled { opacity: .5; cursor: not-allowed; }
+.email-login { margin-top: 24px; border-top: 1px solid #dce2d1; padding-top: 20px; }
+.email-login summary { cursor: pointer; color: var(--forest); font-size: 13px; }
+.password-login { margin-bottom: 24px; }
+.password-login .primary-button { width: 100%; justify-content: center; }
 body:has(.community-dialog[open]) { overflow: hidden; }
 .dialog-close { position: absolute; right: 15px; top: 15px; color: #7f8b74; padding: 6px; }
 .community-dialog h2 { font-size: 24px; font-family: var(--site-serif); line-height: 1.6; margin: 15px 0; }

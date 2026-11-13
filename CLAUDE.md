@@ -13,7 +13,7 @@
 | 項目 | 內容 |
 |------|------|
 | 類型 | `software`（純軟體） |
-| 技術棧 | Next.js (App Router) + Supabase (PostgreSQL/Auth/Storage)，部署於 Vercel |
+| 技術棧 | Next.js (App Router) + Better Auth（帳密／Google／Gmail SMTP）+ PostgreSQL（目前 Supabase 託管），部署於 Vercel |
 | 建立日期 | 2026-10-31 |
 
 ## 資料夾用途
@@ -38,7 +38,7 @@ GreenThumb/
 
 ## 開發約定
 
-- Next.js 專案放在 `src/`；資料庫 migration 與 RLS policy 用 Supabase CLI 管理
+- Next.js 專案放在 `src/`；migration 保留於 `supabase/migrations/`，用 `npm run db:push` 的標準 PostgreSQL runner 管理。會員驗證與 session 由網站內的 Better Auth 管理，不接 Supabase Auth。
 - 資料庫維持標準 PostgreSQL 寫法，避免綁死 Supabase 專有功能，以便日後搬遷
 - 上傳的圖片一律先壓縮、轉成 WebP 並限制尺寸，控制儲存空間與流量
 - 頁面以 SSR／SSG 為主，以利 SEO
