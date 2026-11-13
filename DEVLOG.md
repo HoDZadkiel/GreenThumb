@@ -218,6 +218,8 @@
 - 修正 Cache Components 對 NextRequest 的 Proxy 包裝造成 Undici 複製請求失敗；以網址、method 與 headers 重建已驗證的請求，新增實際 Proxy 請求回歸驗證。
 - 帳密／Google／OTP 共五項整合測試、TypeScript、ESLint 與正式建置通過。正式啟動模式驗證三組測試帳號登入、會員狀態、論壇／私人草稿權限、登出及 session 失效；錯誤密碼被拒絕，沒有寄信或變更原密碼。
 - 瀏覽器確認登入視窗顯示 Email、密碼與帳密登入按鈕，Google 未設定時維持停用；畫面保存於 `.local/ui-review/password-login.png`。
+- 六項 safe-push 檢查通過，已推送 `b78c653` 至 GitHub `origin/main`，Vercel 回報部署成功。正式網站 `/api/member-session` 回應 200，但所有登入方式仍為停用，確認還需要 Production 環境設定。
+- 已準備 Git 忽略的 `.local/vercel-production.env`，只包含六項正式執行設定與公開根憑證，不含管理員資料庫連線；目前沒有 Vercel 管理連線，尚未上傳或套用。
 
 ### 待辦事項（TODO）
 - 使用者尚未建立 Google OAuth Client ID／Secret；依 docs/authentication.md 建立並填入 .env.local 後，以真實 Google 帳號驗收會員功能。

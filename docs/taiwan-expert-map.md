@@ -20,7 +20,7 @@
 
 ## 雲端儲存與授權
 
-- 使用 Supabase Auth session、PostgreSQL 與 RLS。網站不讀取本機 SQLite；`GREENTHUMB_TRIAL_AUTH` 不控制網站資料來源。
+- 使用網站管理的 Better Auth session、PostgreSQL 與 RLS；目前資料庫由 Supabase 託管。網站不讀取本機 SQLite；登入與部署設定見 [會員登入設定](authentication.md)。
 - `expert_columns` 儲存 `id`、`author_id`、`title`、`excerpt`、`body`、`region_code`、`created_at`、`updated_at`，並為區域及作者建立索引。行政區經緯度由網站資料表推導，客戶端不能任意指定作者或座標。
 - `GET /api/expert-columns` 回傳摘要清單；`?id=` 回傳單篇正文。`POST` 建立或更新；作者與管理員可更新，其他會員回應 403，未登入回應 401。更新保留文章 ID、原作者與建立時間。
 - 標題最多 100 字、簡介 200 字、內文 5,000 字，前後端皆驗證。閱讀與預覽沿用停用原始 HTML 的 Markdown 元件及 ImgBB 圖片白名單；圖釘彈窗以 DOM `textContent` 建立。
