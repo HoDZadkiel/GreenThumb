@@ -128,27 +128,44 @@ test("Google OAuth creates a portable member and preserves RLS across forum work
   const second = await login();
   const b = (await (await request(auth, "/get-session", null, second.cookie)).json()).user.id;
   const bDB = dbFor(b), bUser = await currentUser(bDB);
-  await writeMemberData(aDB, a, { action: "profile", name: "陽台種植者", role: "admin" });
+  await writeMemberData(aDB, a, { expectedUserId:a, action: "profile", name: "陽台種植者", role: "admin" });
   assert.equal((await currentUser(aDB)).role, "member");
-  await writeMemberData(aDB, a, { action: "saveDraft", kind: "discussion", payload: { title: "草稿", body: "", category: "觀葉植物", images: [], font: "sans", fontSize: 16 } });
+  await writeMemberData(aDB, a, { expectedUserId:a, action: "saveDraft", kind: "discussion", payload: { title: "草稿", body: "", category: "觀葉植物", images: [], font: "sans", fontSize: 16 } });
   assert.ok(await readDraft(aDB, a, "discussion"));
   assert.equal(await readDraft(bDB, a, "discussion"), null);
-  const post = await savePost(aDB, aUser, { title: "陽台經驗", body: "**植物**", category: "觀葉植物", images: [], regionCode: "63000030" });
+  // Reproduce an A editor submitting after the browser cookie has switched to B.
+  // Both draft kinds must keep B's existing content and leave A's copy untouched.
+  for (const kind of ['discussion','column']) {
+    const payload = kind === 'discussion'
+      ? { title:'A 私人草稿',body:'A private',category:'觀葉植物',images:[],font:'sans',fontSize:16 }
+      : { title:'A 私人專欄',body:'A private',excerpt:'簡介',county:'臺北市',regionCode:'63000030' };
+    await writeMemberData(aDB,a,{expectedUserId:a,action:'saveDraft',kind,payload});
+    await writeMemberData(bDB,b,{expectedUserId:b,action:'saveDraft',kind,payload:{...payload,body:'B private'}});
+    await assert.rejects(writeMemberData(bDB,b,{expectedUserId:a,action:'saveDraft',kind,payload}),error=>error.status===409);
+    await assert.rejects(writeMemberData(bDB,b,{action:'deleteDraft',kind}),error=>error.status===409);
+    assert.equal((await readDraft(bDB,b,kind)).payload.body,'B private');
+    assert.equal((await readDraft(aDB,a,kind)).payload.body,'A private');
+  }
+  await assert.rejects(savePost(bDB,bUser,{expectedUserId:a,title:'不應發表',body:'A private',category:'觀葉植物',images:[]}),error=>error.status===409);
+  await assert.rejects(saveColumn(bDB,bUser,{expectedUserId:a,title:'不應發表',excerpt:'簡介',body:'A private',regionCode:'63000030'}),error=>error.status===409);
+  assert.equal((await bDB.query('select count(*)::int as n from public.posts where author_id=$1',[b])).rows[0].n,0);
+  assert.equal((await bDB.query('select count(*)::int as n from public.expert_columns where author_id=$1',[b])).rows[0].n,0);
+  const post = await savePost(aDB, aUser, { expectedUserId:a, title: "陽台經驗", body: "**植物**", category: "觀葉植物", images: [], regionCode: "63000030" });
   assert.equal(await readDraft(aDB, a, "discussion"), null);
   assert.ok(await getPost(guestDB, post.id));
   await assert.rejects(savePost(guestDB, null, { title: "訪客" }));
-  await assert.rejects(savePost(bDB, bUser, { id: post.id, title: "篡改", body: "內容", category: "觀葉植物", images: [] }));
-  await writeMemberData(aDB, a, { action: "bookmark", postId: post.id, saved: true });
+  await assert.rejects(savePost(bDB, bUser, { expectedUserId:b, id: post.id, title: "篡改", body: "內容", category: "觀葉植物", images: [] }));
+  await writeMemberData(aDB, a, { expectedUserId:a, action: "bookmark", postId: post.id, saved: true });
   assert.deepEqual(await bookmarkIds(aDB), [post.id]);
   assert.deepEqual(await bookmarkIds(bDB), []);
   const target = articleTarget("post", post.id);
-  await interact(bDB, bUser, target, { action: "reply", body: "另一位會員回應" });
-  await interact(bDB, bUser, target, { action: "like", liked: true });
-  await interact(bDB, bUser, target, { action: "like", liked: true });
+  await interact(bDB, bUser, target, { expectedUserId:b, action: "reply", body: "另一位會員回應" });
+  await interact(bDB, bUser, target, { expectedUserId:b, action: "like", liked: true });
+  await interact(bDB, bUser, target, { expectedUserId:b, action: "like", liked: true });
   const interactions = await getInteractions(bDB, bUser, target);
   assert.equal(interactions.likeCount, 1); assert.equal(interactions.replyCount, 1); assert.equal(interactions.liked, true);
-  const column = await saveColumn(aDB, aUser, { title: "在地經驗", excerpt: "簡介", body: "內容", regionCode: "63000030" });
-  await interact(bDB, bUser, articleTarget("column", column.id), { action: "reply", body: "專欄回應" });
+  const column = await saveColumn(aDB, aUser, { expectedUserId:a, title: "在地經驗", excerpt: "簡介", body: "內容", regionCode: "63000030" });
+  await interact(bDB, bUser, articleTarget("column", column.id), { expectedUserId:b, action: "reply", body: "專欄回應" });
   assert.equal((await getInteractions(guestDB, null, articleTarget("column", column.id))).replyCount, 1);
   await assert.rejects(aDB.query("select * from public.gt_session"));
   await assert.rejects(aDB.query("update public.profiles set role='admin' where id=$1", [a]));

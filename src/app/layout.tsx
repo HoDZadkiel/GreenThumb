@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "@fontsource-variable/noto-sans-tc";
 import "@fontsource-variable/noto-serif-tc";
 import "./globals.css";
+import { MemberSessionProvider } from '@/components/community/use-member-session';
 
 export const metadata: Metadata = {
   title: "GreenThumb — 植物種植技巧論壇",
@@ -17,7 +18,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className="h-full antialiased"
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col"><MemberSessionProvider>{children}</MemberSessionProvider></body>
     </html>
   );
 }

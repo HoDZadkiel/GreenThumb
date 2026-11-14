@@ -8,8 +8,8 @@ export async function GET(request: NextRequest) {
   try {
     const client=await createClient(), user=await currentUser(client);
     const kind=request.nextUrl.searchParams.get('kind');
-    if(!user) return json(kind?{draft:null}:{bookmarks:[]});
-    return json(kind?{draft:await readDraft(client,user.id,kind)}:{bookmarks:await bookmarkIds(client)});
+    if(!user) return json(kind?{ownerId:null,draft:null}:{ownerId:null,bookmarks:[]});
+    return json(kind?{ownerId:user.id,draft:await readDraft(client,user.id,kind)}:{ownerId:user.id,bookmarks:await bookmarkIds(client)});
   }catch(error){return failure(error);}
 }
 export async function POST(request: NextRequest) {

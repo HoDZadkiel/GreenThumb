@@ -13,6 +13,7 @@
     "db:push": "node scripts/migrate-database.mjs",
     "db:setup-auth": "node scripts/setup-auth.mjs",
     "test:auth": "node --import tsx --test tests/portable-auth.test.mjs",
+    "test:session": "node --import tsx --test tests/member-session.test.mjs",
     "db:check": "node scripts/check-database.mjs",
     "mail:check": "node scripts/check-smtp.mjs",
     "db:admin": "node scripts/set-supabase-admin.mjs"

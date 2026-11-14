@@ -4,6 +4,7 @@ import { useEffect, useId, useState, type FormEvent } from "react";
 import { Heart, MessageCircle, Send, Share2 } from "lucide-react";
 import type { ArticleInteractions as InteractionData, ArticleKind, ArticleReply } from "@/lib/article-interactions";
 import { useCommunitySession } from "./community-session";
+import { memberRequest } from '@/lib/member-client';
 
 async function readResponse(response: Response) {
   const result = await response.json();
@@ -43,10 +44,7 @@ function ArticleInteractionPanel({ kind, id, title, path }: Props) {
   }, [query, ownerId, loading, refresh]);
 
   async function action(fields: object) {
-    return readResponse(await fetch("/api/article-interactions", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ kind, id, ...fields }),
-    }));
+    return memberRequest('/api/article-interactions', {kind, id, ...fields}, user?.id ?? null);
   }
 
   async function toggleLike() {

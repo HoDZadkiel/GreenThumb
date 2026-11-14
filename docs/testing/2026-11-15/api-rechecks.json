@@ -1,0 +1,31 @@
+[
+  {
+    "name": "錯誤密碼與不存在帳號均被拒絕",
+    "checkedAt": "2026-11-14T16:54:24.884Z",
+    "previousStatus": "FAIL",
+    "previousDetail": "/api/auth/sign-in/email: Too many requests. Please try again later.\n\n429 !== 401\n",
+    "status": "PASS"
+  },
+  {
+    "name": "地圖圖釘連到正確討論並隨位置編輯與取消更新",
+    "checkedAt": "2026-11-14T16:54:28.065Z",
+    "previousStatus": "FAIL",
+    "previousDetail": "Cannot read properties of undefined (reading 'regionCode')",
+    "status": "PASS"
+  },
+  {
+    "name": "公開頁與三篇編輯精選可讀；不存在文章為 404",
+    "checkedAt": "2026-11-14T16:54:40.776Z",
+    "previousStatus": "FAIL",
+    "previousDetail": "/discussions/9223372036854775807: <!DOCTYPE html><html lang=\"zh-Hant\" data-scroll-behavior=\"smooth\" class=\"h-full antialiased\"><head><\n\n200 !== 404\n",
+    "status": "FAIL",
+    "detail": "Missing pages HTTP statuses: 200, 200, 200"
+  },
+  {
+    "name": "公開頁與編輯精選可讀；不存在文章顯示 404 並禁止索引",
+    "checkedAt": "2026-11-14T16:56:27.373Z",
+    "previousStatus": "FAIL",
+    "previousDetail": "Missing pages HTTP statuses: 200, 200, 200",
+    "status": "PASS"
+  }
+]

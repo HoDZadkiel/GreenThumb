@@ -1,7 +1,7 @@
 import type { ForumUser } from "@/components/community/community-session";
 import type { ForumPost } from "@/lib/trial-forum-client";
 import type { ArticlePin, ExpertColumn, ExpertColumnSummary } from "@/lib/expert-columns";
-import { ForumError, validateColumn, validatePost, validColumnId, validPostId } from "@/lib/forum-input.mjs";
+import { assertSessionOwner, ForumError, validateColumn, validatePost, validColumnId, validPostId } from "@/lib/forum-input.mjs";
 import type { Database } from "./server";
 
 export function databaseError(error: { code?: string }) {
@@ -35,6 +35,7 @@ export async function getPost(db: Database, id: string) {
 }
 export async function savePost(db: Database, user: ForumUser | null, input: Record<string, unknown>) {
   if (!user) throw new ForumError("請先登入再發文。", 401);
+  assertSessionOwner(user.id, input);
   const fields = validatePost(input);
   const values = [fields.title, fields.body, fields.board.slug, fields.images, fields.font, fields.fontSize, fields.regionCode];
   const result = input.id !== undefined
@@ -71,6 +72,7 @@ export async function getColumn(db: Database, id: string): Promise<ExpertColumn 
 }
 export async function saveColumn(db: Database, user: ForumUser | null, input: Record<string, unknown>) {
   if (!user) throw new ForumError("請先登入，再發表達人專欄。", 401);
+  assertSessionOwner(user.id, input);
   const fields = validateColumn(input);
   const values = [fields.title, fields.excerpt, fields.body, fields.regionCode];
   const result = input.id !== undefined

@@ -1,14 +1,8 @@
 import type { TrialPost } from "./trial-posts";
+import { memberRequest } from './member-client';
 
 export type ForumPost = TrialPost & { author: string; authorId: string; createdAt: string; likeCount: number; replyCount: number; region: string | null; postType: string };
 
-export async function forumAction(action: string, fields: object = {}) {
-  const response = await fetch("/api/forum", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...fields, action }),
-  }).catch(() => { throw new Error("無法連線，請稍後再試。"); });
-  const result = await response.json().catch(() => { throw new Error("伺服器暫時無法處理請求。"); });
-  if (!response.ok) throw new Error(result.error);
-  return result;
+export function forumAction(action: string, fields: object, expectedUserId: string) {
+  return memberRequest('/api/forum', { ...fields, action }, expectedUserId);
 }

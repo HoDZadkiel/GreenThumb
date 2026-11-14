@@ -21,7 +21,12 @@ export function MemberAccess({ user, methods, onSignedIn }: { user: ForumUser | 
   const [sent, setSent] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const cleanup = useRef<(() => void) | null>(null);
-  useEffect(() => () => cleanup.current?.(), []);
+  const active = useRef(true);
+  useEffect(() => {
+    active.current = true;
+    return () => { active.current = false; cleanup.current?.(); };
+  }, []);
+  function completeSignIn(member: ForumUser) { if(active.current) onSignedIn(member); }
   useEffect(() => {
     if (cooldown === 0) return;
     const timer = window.setTimeout(() => setCooldown(value => value - 1), 1000);
@@ -46,7 +51,7 @@ export function MemberAccess({ user, methods, onSignedIn }: { user: ForumUser | 
         busy = true;
         try {
           const session = await readMemberSession();
-          if (session.user) { stop(); popup.close(); setWaitingGoogle(false); setPending(false); onSignedIn(session.user); return; }
+          if (session.user) { stop(); popup.close(); setWaitingGoogle(false); setPending(false); completeSignIn(session.user); return; }
           // Google/browser COOP can sever the window handle while login is still running.
           if (Date.now() - started > 5 * 60_000) {
             stop(); popup.close(); setWaitingGoogle(false); setPending(false); setError("登入未完成，請再試一次。");
@@ -73,7 +78,7 @@ export function MemberAccess({ user, methods, onSignedIn }: { user: ForumUser | 
       if (sent) {
         const session = await readMemberSession();
         if (!session.user) throw new Error("登入未完成，請再試一次。");
-        onSignedIn(session.user);
+        completeSignIn(session.user);
       } else { setSent(true); setCooldown(60); }
     } catch (caught) { setError((caught as Error).message); }
     finally { setPending(false); }
@@ -87,17 +92,18 @@ export function MemberAccess({ user, methods, onSignedIn }: { user: ForumUser | 
       if (result.error) throw new Error(result.error.status === 429 ? "登入嘗試次數較多，請稍候再試。" : "Email 或密碼不正確。");
       const session = await readMemberSession();
       if (!session.user) throw new Error("登入未完成，請再試一次。");
-      onSignedIn(session.user);
+      completeSignIn(session.user);
     } catch (caught) { setError((caught as Error).message); }
     finally { setPending(false); }
   }
 
   async function saveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setPending(true); setError("");
+    if (!user) { setPending(false); return; }
     try {
-      await memberAction("profile", { name: new FormData(event.currentTarget).get("name") });
+      await memberAction("profile", { name: new FormData(event.currentTarget).get("name") }, user.id);
       const session = await readMemberSession();
-      if (session.user) onSignedIn(session.user);
+      if (session.user) completeSignIn(session.user);
     } catch (caught) { setError((caught as Error).message); }
     finally { setPending(false); }
   }

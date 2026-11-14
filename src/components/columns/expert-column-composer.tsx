@@ -10,6 +10,7 @@ import { useCommunitySession } from "@/components/community/community-session";
 import { useCloudDraft } from "@/components/community/use-cloud-draft";
 import { ArticleMarkdown } from "@/components/community/article-markdown";
 import { getRegion, taiwanCounties, taiwanRegions, type ExpertColumn } from "@/lib/expert-columns";
+import { memberRequest } from '@/lib/member-client';
 
 const empty={title:"",excerpt:"",body:"",county:"",regionCode:""};
 function initialDraft(post?:ExpertColumn){return post?{title:post.title,excerpt:post.excerpt,body:post.body,county:getRegion(post.regionCode)?.county??"",regionCode:post.regionCode}:{...empty};}
@@ -42,7 +43,7 @@ function ColumnComposerLoader({ editId }: { editId: string | null }) {
 }
 
 function ColumnForm({ post }: { post?: ExpertColumn }) {
-  const { user, requestLogin } = useCommunitySession();
+  const { user, requestLogin, isCurrentUser } = useCommunitySession();
   const router = useRouter();
   const {draft,setDraft,saved,setSaved,saving:cloudSaving,loading:cloudLoading,error:cloudError,saveDraft}=useCloudDraft("column",()=>initialDraft(post),!!post);
   const [preview, setPreview] = useState(false);
@@ -60,11 +61,10 @@ function ColumnForm({ post }: { post?: ExpertColumn }) {
     if (!user) { requestLogin(); return; }
     setPending(true); setError("");
     try {
-      const response = await fetch("/api/expert-columns", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
+      const result = await memberRequest('/api/expert-columns', {
         ...(post ? { id: post.id } : {}), title: draft.title, excerpt: draft.excerpt, body: draft.body, regionCode: draft.regionCode,
-      }) });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error);
+      }, user.id);
+      if(!isCurrentUser(user.id))return;
       router.push(`/columns/community/${result.column.id}`);
     } catch (failure) { setError(failure instanceof Error ? failure.message : "無法連線，請稍後再試。"); }
     finally { setPending(false); }

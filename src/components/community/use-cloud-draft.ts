@@ -4,7 +4,7 @@ import {useCommunitySession} from './community-session';
 import {memberAction} from '@/lib/member-client';
 
 export function useCloudDraft<T extends object>(kind:'discussion'|'column',initial:()=>T,editing=false) {
-  const {user,requestLogin}=useCommunitySession();
+  const {user,requestLogin,refreshSession}=useCommunitySession();
   const [draft,updateDraft]=useState(initial);
   const [saved,setSaved]=useState(false),[saving,setSaving]=useState(false),[error,setError]=useState('');
   const [loadedUser,setLoadedUser]=useState<string|null>(null);
@@ -20,6 +20,7 @@ export function useCloudDraft<T extends object>(kind:'discussion'|'column',initi
       const result=await response.json();
       if(!response.ok) throw new Error(result.error);
       if(controller.signal.aborted) return;
+      if(result.ownerId!==userId){void refreshSession();throw new Error('登入身分已變更，請重新整理後再試。');}
       if(revision.current===version && (version===0 || (owner.current && owner.current!==userId))) {
         updateDraft(result.draft?.payload ?? initial());
         setSaved(!!result.draft);
@@ -29,15 +30,15 @@ export function useCloudDraft<T extends object>(kind:'discussion'|'column',initi
     return ()=>controller.abort();
     // initial describes this editor instance; it must not reload while typing.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[user?.id,editing,kind]);
+  },[user?.id,editing,kind,refreshSession]);
   async function saveDraft(){
     if(!user){requestLogin();return;}
     const version=revision.current;
     setSaving(true);setError('');
-    try{await memberAction('saveDraft',{kind,payload:draft});if(version===revision.current)setSaved(true);}
+    try{await memberAction('saveDraft',{kind,payload:draft},user.id);if(version===revision.current)setSaved(true);}
     catch(failure){setError(failure instanceof Error?failure.message:'無法儲存雲端草稿。');}
     finally{setSaving(false);}
   }
-  async function clearDraft(){await memberAction('deleteDraft',{kind});setSaved(false);}
+  async function clearDraft(){if(!user){requestLogin();return;}await memberAction('deleteDraft',{kind},user.id);setSaved(false);}
   return {draft,setDraft,saved,setSaved,saving,loading,error,saveDraft,clearDraft};
 }

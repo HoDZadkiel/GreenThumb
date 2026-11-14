@@ -1,4 +1,4 @@
-import { ForumError, validateDraft, validPostId } from "@/lib/forum-input.mjs";
+import { assertSessionOwner, ForumError, validateDraft, validPostId } from "@/lib/forum-input.mjs";
 import type { Database } from "./server";
 
 export async function bookmarkIds(db: Database) {
@@ -9,6 +9,7 @@ export async function readDraft(db: Database, userId: string, kind: string) {
   return (await db.query("select payload,updated_at from public.member_drafts where user_id=$1 and kind=$2", [userId, kind])).rows[0] ?? null;
 }
 export async function writeMemberData(db: Database, userId: string, input: Record<string, unknown>) {
+  assertSessionOwner(userId, input);
   if (input.action === "profile") {
     const name = typeof input.name === "string" ? input.name.trim() : "";
     if (!name || name.length > 40) throw new ForumError("請輸入 1–40 字的暱稱。");

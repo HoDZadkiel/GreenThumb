@@ -9,6 +9,7 @@ import { articleFonts, articleFontSizes, type ArticleFont, type ArticleFontSize,
 import { forumAction, type ForumPost } from "@/lib/trial-forum-client";
 import { useCloudDraft } from "./use-cloud-draft";
 import { ArticleMarkdown } from "./article-markdown";
+import { useCommunitySession } from './community-session';
 
 const emptyDraft = { title: "", body: "", category: "觀葉植物", images: [] as string[], fontSize: 16 as ArticleFontSize, font: "sans" as ArticleFont, county: "", regionCode: "" };
 const markdownTools = [
@@ -28,6 +29,7 @@ function initialDraft(post?:TrialPost):typeof emptyDraft {
 }
 
 export function PostEditor({ post, canPublish, onRequireLogin, onPublished }: { post?: TrialPost; canPublish: boolean; onRequireLogin: () => void; onPublished: (post: ForumPost, warning: string) => void }) {
+  const {user}=useCommunitySession();
   const {draft,setDraft,saved:draftSaved,setSaved:setDraftSaved,saving:cloudSaving,loading:cloudLoading,error:cloudError,saveDraft:persistDraft}=useCloudDraft("discussion",()=>initialDraft(post),!!post);
   const [editorMode, setEditorMode] = useState<"write" | "split" | "preview">("write");
   const [showImages, setShowImages] = useState(false);
@@ -62,14 +64,14 @@ export function PostEditor({ post, canPublish, onRequireLogin, onPublished }: { 
       document.getElementById("post-district")?.focus();
       return;
     }
-    if (!canPublish) {
+    if (!canPublish || !user) {
       onRequireLogin();
       return;
     }
     let published: ForumPost;
     setPending(true);
     try {
-      ({ post: published } = await forumAction("publish", { ...draft, title, body, id: editingId }));
+      ({ post: published } = await forumAction("publish", { ...draft, title, body, id: editingId }, user.id));
     } catch (error) {
       setStorageError((error as Error).message);
       return;

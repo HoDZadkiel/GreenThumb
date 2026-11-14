@@ -220,8 +220,34 @@
 - 瀏覽器確認登入視窗顯示 Email、密碼與帳密登入按鈕，Google 未設定時維持停用；畫面保存於 `.local/ui-review/password-login.png`。
 - 六項 safe-push 檢查通過，已推送 `b78c653` 至 GitHub `origin/main`，Vercel 回報部署成功。正式網站 `/api/member-session` 回應 200，但所有登入方式仍為停用，確認還需要 Production 環境設定。
 - 已準備 Git 忽略的 `.local/vercel-production.env`，只包含六項正式執行設定與公開根憑證，不含管理員資料庫連線；目前沒有 Vercel 管理連線，尚未上傳或套用。
+- 使用者自行完成 Vercel Production 設定後，正式網站會員與論壇 API 回應 200，帳密入口已啟用，Google／SMTP 依設定維持關閉。三組測試會員全部通過 HTTPS 登入、會員身分、論壇／私人草稿讀取、登出失效及錯誤密碼拒絕驗收。
+- 正式瀏覽器表單登入成功，重新整理後維持正確會員，登出後恢復訪客。Secure／HttpOnly／SameSite cookie、禁止快取、跨來源拒絕與未登入寫入拒絕通過；測試會員 01 的暫存私人草稿可儲存及重新讀取，會員 02 與訪客無法取得，測試後已清除並登出所有本次 session，未新增公開文章或寄送郵件。
+- 正式驗收結果及登入畫面保留在 `.local/production-member-test-result.json`、`.local/ui-review/production-password-login.png`；三組帳密檔已記錄正式登入網址與驗收時間，密碼未變更。
 
 ### 待辦事項（TODO）
 - 使用者尚未建立 Google OAuth Client ID／Secret；依 docs/authentication.md 建立並填入 .env.local 後，以真實 Google 帳號驗收會員功能。
 - Gmail SMTP 待填入專用寄件帳號與應用程式密碼，再測試連線及真實送達；測試期間 AUTH_EMAIL_ENABLED=false。
-- Vercel 尚未連接，需配置 Production 的受限資料庫連線、session 密鑰、正式網址與公開 CA 後驗收線上帳密登入；本機設定不會隨 GitHub 推送同步。
+
+## 2026-11-15
+
+### 修改內容（Changes）
+- 依使用者要求，以內建瀏覽器與三組既有測試會員驗收 https://greenthumb-eta.vercel.app/，所有應用請求均指向 Vercel，沒有啟動 self-host。
+- 新增 scripts/test-vercel-regression.mjs、recheck-vercel-regression.mjs、cleanup-vercel-regression.mjs、verify-vercel-cleanup.mjs；保留正式站 API 結果、複測與清理驗證紀錄。
+- 新增 docs/testing/2026-11-15/README.md 完整報告及 15 張桌面／手機截圖；沒有修改或部署網站功能。
+- 後續依使用者要求修正 F01／F02：新增根 layout 共用的會員 session store、跨分頁與焦點同步、私人編輯器版本重設、遲到登入回應隔離；訪客首次登入保留尚未儲存內容。
+- 所有會員寫入加入 expectedUserId，伺服器在查詢前核對當前 session，不符或缺少時回應 409；草稿／收藏讀取附 ownerId 並核對。討論、專欄、互動、暱稱與收藏一併使用相同防護。
+- 新增 tests/member-session.test.mjs 與 test:session 指令，擴充 portable-auth 的兩類草稿及錯誤發表回歸；更新 Vercel API 腳本，另增 fixes.md／fix-validation.json 記錄修正與部署後驗收步驟。
+- 使用者後續明確要求 push 到 GitHub；本次提交包含草稿隔離修正、回歸測試與正式站驗收報告／截圖，目標為既有 origin/main。更新 README 說明會員同步、409 與 test:session；推送前執行 safe-push 六項檢查，本機帳密、環境設定與無關文字檔保留在提交外。
+
+### 問題與解法（Problems & Solutions）
+- 52 組 API 回歸最終通過，涵蓋三帳號 session、一般會員權限、兩類私人草稿、收藏、雙向越權編輯、三類文章互動、地圖位置、輸入限制及回覆分頁；瀏覽器實際完成討論與專欄發表、修訂、草稿重整、收藏、暱稱、分享及手機版面驗證。
+- 發現 F01：另一分頁切換會員後，舊編輯分頁不更新身分，舊會員私人草稿可誤存到新會員帳號；已用會員 02 重整讀回與截圖確認。伺服器端以獨立 session 直接讀取其他會員資料仍正常隔離。
+- 發現 F02：登出後仍顯示已從雲端載入的私人草稿；未修正程式，保留重現步驟與來源線索。另記錄失效 ImgBB 圖片缺少友善錯誤提示的體驗觀察。
+- 修正測試對限流 429、省略位置欄位及 Next.js 串流 notFound/noindex 的斷言，複測紀錄完整保留，沒有以修改網站的方式消除失敗。
+- 本次 3 篇討論、3 篇專欄、35 則回覆及 2 份測試私人草稿已依 ID、作者與 QA 標記核對後清除；三帳號原暱稱、member 權限與原草稿還原，全部測試 session 已登出，既有兩篇討論及三篇精選保留。
+- 修正後 9 項 session 回歸、5 項會員整合、ESLint、TypeScript 及 Next.js Turbopack 正式建置通過。沙箱內建置因 EPERM 不能建立預渲染目錄，工具核准後重跑成功；沒有啟動 self-host 或變更正式站資料。
+- F01／F02 的程式碼修正已完成，但尚未推送／部署至 Vercel；原 52 組正式站結果及截圖維持為修正前證據，不視為修正後驗收。
+
+### 待辦事項（TODO）
+- 部署 F01／F02 修正後，在指定 Vercel 網站用三組測試會員複驗討論與專欄的跨分頁、登出、返回快取頁面與 409 拒絕寫入；完整 API 回歸腳本預期 53 組，再保存更新後截圖並清理 fixture。
+- Google／Email OTP 目前正式站未啟用；待有正式設定後驗收真實 OAuth／SMTP。管理員／版主操作、第三方圖片實際上傳與大資料量／負載測試不在本次已通過範圍。

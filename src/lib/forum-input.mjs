@@ -9,6 +9,11 @@ export const forumBoards = [
 export class ForumError extends Error {
   constructor(message, status = 400) { super(message); this.status = status; }
 }
+export function assertSessionOwner(userId, input) {
+  if (typeof input.expectedUserId !== 'string' || input.expectedUserId !== userId) {
+    throw new ForumError('登入身分已變更，請重新整理後再試。', 409);
+  }
+}
 const text = (value) => typeof value === "string" ? value.trim() : "";
 export function validateAuth(input, register) {
   const email = text(input.email).toLowerCase();

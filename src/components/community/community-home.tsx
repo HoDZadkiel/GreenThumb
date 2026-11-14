@@ -11,7 +11,8 @@ import type { ForumPost } from "@/lib/trial-forum-client";
 import { memberAction } from "@/lib/member-client";
 import { PostEditor } from "./post-editor";
 import { CommunitySessionContext, type ForumUser } from "./community-session";
-import { MemberAccess, type LoginMethods } from "./member-access";
+import { MemberAccess } from "./member-access";
+import { useMemberSession } from './use-member-session';
 import { authClient } from "@/lib/auth/client";
 
 type Post = {id:string;title:string;excerpt:string;category:string;type:string;author:string;authorId:string;region:string;location:string;time:string;likes:number;replies:number;tags:string[];color:string;trial:ForumPost};
@@ -32,18 +33,21 @@ export function CommunityHome({ view = "home", children, editId }: { view?: Comm
   const [sort, setSort] = useState("最新討論");
   const [region, setRegion] = useState("所有地區");
   const [compact, setCompact] = useState(true);
-  const [bookmarkPending,setBookmarkPending]=useState<string|null>(null);
+  const [bookmarkPending,setBookmarkPending]=useState<{ownerId:string;id:string}|null>(null);
   const [bookmarkOwner,setBookmarkOwner]=useState<string|null>(null);
   const [saved, setSaved] = useState<Post["id"][]>([]);
   const [mode, setMode] = useState<Mode>("about");
-  const [user, setUser] = useState<ForumUser | null>(null);
+  const { user, auth: loginMethods, loading: loadingSession, error: sessionError, editorVersion, changeUser, refreshSession, isCurrentUser } = useMemberSession();
   const [loadingForum, setLoadingForum] = useState(true);
   const [forumPosts, setForumPosts] = useState<ForumPost[]>([]);
   const [pending, setPending] = useState(false);
   const [forumError, setForumError] = useState("");
-  const [loginMethods, setLoginMethods] = useState<LoginMethods>({ google: false, email: false, password: false });
   const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [published, setPublished] = useState<ForumPost | null>(null);
+  const [publication, setPublication] = useState<{post:ForumPost;ownerId:string;version:number} | null>(null);
+  const published = publication?.ownerId === user?.id && publication?.version === editorVersion ? publication.post : null;
+  const visibleSaved = user && bookmarkOwner === user.id ? saved : [];
+  const userId = user?.id;
+  const loading = loadingForum || loadingSession;
   const editing = forumPosts.find((post) => post.id === editId);
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -57,8 +61,6 @@ export function CommunityHome({ view = "home", children, editId }: { view?: Comm
         if (editResponse.ok) data.posts.push(editData.post);
       }
       if (!active) return;
-      setUser(data.user);
-      setLoginMethods(data.auth);
       setForumPosts(data.posts);
       setNextCursor(data.nextCursor);
       if (new URLSearchParams(window.location.search).has("auth_error")) setForumError("登入連結已失效，請重新登入。");
@@ -84,22 +86,26 @@ export function CommunityHome({ view = "home", children, editId }: { view?: Comm
   }
 
   useEffect(()=>{
+    if(!userId) return;
+    const ownerId=userId;
     const controller=new AbortController();
     fetch("/api/member-data",{cache:"no-store",signal:controller.signal}).then(async response=>{
       const result=await response.json();if(!response.ok)throw new Error(result.error);
-      if(!controller.signal.aborted){setSaved(result.bookmarks);setBookmarkOwner(user?.id??null);}
+      if(controller.signal.aborted)return;
+      if(result.ownerId!==ownerId){void refreshSession();return;}
+      setSaved(result.bookmarks);setBookmarkOwner(ownerId);
     }).catch(error=>{if(!controller.signal.aborted)setForumError(error.message||"無法載入收藏。");});
     return ()=>controller.abort();
-  },[user?.id]);
+  },[userId,refreshSession]);
   async function toggleBookmark(id:string){
     if(!user){open("login");return;}
-    const shouldSave=!saved.includes(id);setBookmarkPending(id);
-    try{await memberAction("bookmark",{postId:id,saved:shouldSave});setSaved(current=>shouldSave?[...new Set([...current,id])]:current.filter(item=>item!==id));}
-    catch(error){setForumError((error as Error).message);}finally{setBookmarkPending(null);}
+    const ownerId=user.id,shouldSave=!visibleSaved.includes(id);setBookmarkPending({ownerId,id});
+    try{await memberAction("bookmark",{postId:id,saved:shouldSave},ownerId);if(isCurrentUser(ownerId))setSaved(current=>shouldSave?[...new Set([...current,id])]:current.filter(item=>item!==id));}
+    catch(error){if(isCurrentUser(ownerId))setForumError((error as Error).message);}finally{if(isCurrentUser(ownerId))setBookmarkPending(null);}
   }
 
   function signedIn(member: ForumUser) {
-    setUser(member);
+    changeUser(member);
     if (member.name === "新會員") setMode("profile");
     else dialog.current?.close();
   }
@@ -123,7 +129,7 @@ export function CommunityHome({ view = "home", children, editId }: { view?: Comm
     try {
       const result = await authClient.signOut();
       if (result.error) throw new Error("無法登出，請稍後再試。");
-      setUser(null);
+      changeUser(null);
     } catch (error) {
       setForumError((error as Error).message);
     } finally {
@@ -137,22 +143,22 @@ export function CommunityHome({ view = "home", children, editId }: { view?: Comm
   }
 
   return (
-    <CommunitySessionContext.Provider value={{ user, loading: loadingForum, requestLogin: () => open("login") }}>
-    <div className={"community view-" + view}>
+    <CommunitySessionContext.Provider value={{ user, loading, requestLogin: () => open("login"), refreshSession, isCurrentUser }}>
+    <div key={editorVersion} className={"community view-" + view}>
       <a className="skip-link" href="#main-content">跳至主要內容</a>
       <header className="site-header">
         <div className="header-inner">
           <Link className="brand" href="/" aria-label="GreenThumb 首頁"><span className="brand-mark"><Sprout size={27} strokeWidth={1.7} /></span><span>GreenThumb<span className="brand-sub">一起，把日子種好。</span></span></Link>
           <div className="header-actions">
             {user && <button className="member-name" title="設定社群暱稱" onClick={() => open("profile")}>{user.role === "admin" ? "管理員" : user.name}</button>}
-            <button className="quiet-button" disabled={loadingForum || pending} onClick={() => user ? logout() : open("login")}>{user ? "登出" : "登入"}</button>
+            <button className="quiet-button" disabled={loading || pending} onClick={() => user ? logout() : open("login")}>{user ? "登出" : "登入"}</button>
             {view !== "write" && view !== "expert-write" && <Link className="primary-button" href={writeHref}><PenLine size={16} />發表文章</Link>}
           </div>
         </div>
       </header>
 
       <main className="page-shell" id="main-content" tabIndex={-1}>
-        {forumError && <p role="alert">{forumError}</p>}
+        {(forumError || sessionError) && <p role="alert">{forumError || sessionError}</p>}
         {children}
 
         {view === "discussions" && (
@@ -174,7 +180,7 @@ export function CommunityHome({ view = "home", children, editId }: { view?: Comm
               <h1 id="write-title">{editId ? "編輯文章" : "發表文章"}</h1></div>
               <p>一個問題、一片新葉，都值得記錄。</p>
             </header>
-            {loadingForum ? <p role="status">載入發文頁…</p>
+            {loading ? <p role="status">載入發文頁…</p>
               : published ? <div className="write-notice">
                 <h2>{editId ? "文章修改已儲存" : "文章已發表"}</h2>
                 <p>{published.title}</p>
@@ -185,7 +191,8 @@ export function CommunityHome({ view = "home", children, editId }: { view?: Comm
               : editId && (!editing || (user?.role === "member" && editing.authorId !== user?.id))
                 ? <p role="alert">找不到文章，或你沒有編輯權限。</p>
                 : <PostEditor key={editId ?? "new"} post={editing} canPublish={Boolean(user)} onRequireLogin={() => open("login")} onPublished={(post, warning) => {
-                  setPublished(post);
+                  if(!user || !isCurrentUser(user.id))return;
+                  setPublication({post,ownerId:user.id,version:editorVersion});
                   if (warning) setForumError(warning);
                 }} />}
           </section>
@@ -207,7 +214,7 @@ export function CommunityHome({ view = "home", children, editId }: { view?: Comm
             <div className="post-list" aria-live="polite">
               {filtered.map((post) => <article className="post" key={post.id}>
                 <div className={"plant-tile " + post.color} aria-hidden="true">{post.category === "花卉植物" ? <Flower2 /> : post.category === "多肉植物" ? <Sprout /> : <Leaf />}<span>{post.category.slice(0, 2)}</span></div>
-                <div className="post-body"><div className="post-meta"><span className={"post-type type-" + post.type}>{post.type}</span><span>{post.author}</span><span className="meta-dot">·</span><span>{post.time}</span></div><Link className="post-title" href={`/discussions/${post.id}`}>{post.title}</Link><p>{post.excerpt}</p><div className="post-bottom"><div className="tags">{post.tags.map((tag) => <button key={tag} onClick={() => setQuery(tag)}>#{tag}</button>)}<span className="post-location"><MapPin size={11} />{post.location}</span></div><div className="post-stats"><span><Heart size={14} />{post.likes}</span><Link href={`/discussions/${post.id}#article-responses`} aria-label={`閱讀 ${post.replies} 則回應`}><MessageCircle size={14} />{post.replies}</Link><button aria-label={(saved.includes(post.id) ? "取消收藏：" : "收藏：") + post.title} aria-pressed={saved.includes(post.id)} className={saved.includes(post.id) ? "is-saved" : ""} disabled={bookmarkPending!==null || (!!user && bookmarkOwner!==user.id)} onClick={() => toggleBookmark(post.id)}><Bookmark size={15} fill={saved.includes(post.id) ? "currentColor" : "none"} /></button></div></div></div>
+                <div className="post-body"><div className="post-meta"><span className={"post-type type-" + post.type}>{post.type}</span><span>{post.author}</span><span className="meta-dot">·</span><span>{post.time}</span></div><Link className="post-title" href={`/discussions/${post.id}`}>{post.title}</Link><p>{post.excerpt}</p><div className="post-bottom"><div className="tags">{post.tags.map((tag) => <button key={tag} onClick={() => setQuery(tag)}>#{tag}</button>)}<span className="post-location"><MapPin size={11} />{post.location}</span></div><div className="post-stats"><span><Heart size={14} />{post.likes}</span><Link href={`/discussions/${post.id}#article-responses`} aria-label={`閱讀 ${post.replies} 則回應`}><MessageCircle size={14} />{post.replies}</Link><button aria-label={(visibleSaved.includes(post.id) ? "取消收藏：" : "收藏：") + post.title} aria-pressed={visibleSaved.includes(post.id)} className={visibleSaved.includes(post.id) ? "is-saved" : ""} disabled={(!!bookmarkPending && bookmarkPending.ownerId===user?.id) || (!!user && bookmarkOwner!==user.id)} onClick={() => toggleBookmark(post.id)}><Bookmark size={15} fill={visibleSaved.includes(post.id) ? "currentColor" : "none"} /></button></div></div></div>
               </article>)}
               {filtered.length === 0 && <div className="empty-state"><Sprout size={35} /><h3>這片小花園還在等待新故事</h3><p>試試其他關鍵字，或切換植物分類與地區。</p><button className="text-link" onClick={() => { setQuery(""); setTopic("全部植物"); setRegion("所有地區"); }}>清除篩選 <ArrowRight size={15} /></button></div>}
             </div>

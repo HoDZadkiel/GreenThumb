@@ -1,6 +1,6 @@
 import type { ForumUser } from "@/components/community/community-session";
 import type { ArticleInteractions, ArticleKind } from "@/lib/article-interactions";
-import { ForumError, validColumnId, validPostId } from "@/lib/forum-input.mjs";
+import { assertSessionOwner, ForumError, validColumnId, validPostId } from "@/lib/forum-input.mjs";
 import type { Database } from "./server";
 
 export function articleTarget(kind: unknown, id: unknown): { kind: ArticleKind; id: string } {
@@ -38,6 +38,7 @@ export async function getInteractions(db: Database, user: ForumUser | null, targ
 }
 export async function interact(db: Database, user: ForumUser | null, target: Target, input: Record<string, unknown>) {
   if (!user) throw new ForumError("請先登入，再按讚或回應文章。", 401);
+  assertSessionOwner(user.id, input);
   const canReply = await articleStatus(db, target);
   const table = tables(target);
   if (input.action === "reply") {
