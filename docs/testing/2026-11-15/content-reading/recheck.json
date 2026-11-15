@@ -1,0 +1,22 @@
+{
+  "base": "https://greenthumb-eta.vercel.app",
+  "commit": "01a9726",
+  "checkedAt": "2026-11-15T04:30:27.074Z",
+  "status": "PASS",
+  "rechecksFailedCase": "公開頁與編輯精選可讀；不存在文章顯示 404 並禁止索引",
+  "checks": [
+    "公開頁可讀 /",
+    "公開頁可讀 /columns",
+    "公開頁可讀 /discussions",
+    "公開頁可讀 /discussions/write",
+    "公開頁可讀 /columns/write",
+    "公開頁可讀 /columns/balcony-field-notes",
+    "公開頁可讀 /columns/photograph-your-plant",
+    "公開頁可讀 /columns/ask-a-growing-question",
+    "不存在內容不可索引 /discussions/999999999999999999",
+    "不存在內容不可索引 /columns/community/00000000-0000-4000-8000-000000000000",
+    "不存在內容不可索引 /columns/qa-does-not-exist",
+    "兩會員的 UUID 討論／專欄 API 與公開閱讀頁均可讀",
+    "摘要及 UUID 清單回應正常"
+  ]
+}

@@ -1,0 +1,170 @@
+{
+  "base": "https://greenthumb-eta.vercel.app",
+  "commit": "01a9726",
+  "checks": [
+    {
+      "name": "桌面討論兩側資訊欄",
+      "status": "PASS",
+      "detail": {
+        "rails": [
+          "block",
+          "block"
+        ],
+        "scrollWidth": 1385,
+        "width": 1385
+      },
+      "evidence": "desktop-discussion.jpg"
+    },
+    {
+      "name": "手機討論維持單欄且側欄隱藏",
+      "status": "PASS",
+      "detail": {
+        "articleWidth": 342.66668701171875,
+        "rails": [
+          "none",
+          "none"
+        ],
+        "scrollWidth": 375,
+        "width": 375
+      },
+      "evidence": "mobile-discussion.jpg"
+    },
+    {
+      "name": "1199／1200px 斷點",
+      "status": "PASS",
+      "detail": "1199px 隱藏側欄；1200px 顯示雙側欄，無水平溢出。"
+    },
+    {
+      "name": "討論導覽跳至回應",
+      "status": "PASS",
+      "detail": {
+        "url": "https://greenthumb-eta.vercel.app/discussions/d14ac2bc-564b-4768-bc4f-9b4e959098e3#article-responses"
+      }
+    },
+    {
+      "name": "專題文章桌面版與真實延伸閱讀",
+      "status": "PASS",
+      "detail": "兩側欄正確顯示，延伸閱讀排除目前文章，左側列出兩個正文段落。",
+      "evidence": "desktop-editorial.jpg"
+    },
+    {
+      "name": "專題文章段落導覽",
+      "status": "PASS",
+      "detail": "可跳至 reading-section-2，導覽項目為目前位置。"
+    },
+    {
+      "name": "手機專題文章維持原有單欄",
+      "status": "PASS",
+      "detail": {
+        "rails": [
+          "none",
+          "none",
+          "none",
+          "none"
+        ],
+        "scrollWidth": 375,
+        "width": 375
+      },
+      "evidence": "mobile-editorial.jpg"
+    },
+    {
+      "name": "會員專欄桌面資訊與獨立目錄",
+      "status": "PASS",
+      "detail": "作者、澎湖馬公所在地、在地種植段落與延伸閱讀均正確。",
+      "evidence": "desktop-community-column.jpg"
+    },
+    {
+      "name": "每篇文章的獨立目錄與段落錨點",
+      "status": "PASS",
+      "detail": [
+        [
+          {
+            "href": "#reading-editorial-balcony-field-notes",
+            "text": "從這裡開始"
+          },
+          {
+            "href": "#reading-editorial-balcony-field-notes-section-1",
+            "text": "記下你每天看得到的事"
+          },
+          {
+            "href": "#reading-editorial-balcony-field-notes-section-2",
+            "text": "一次記錄一個調整"
+          },
+          {
+            "href": "#reading-responses-editorial-balcony-field-notes",
+            "text": "讀者回應"
+          }
+        ]
+      ]
+    },
+    {
+      "name": "往返兩篇快取文章的目錄隔離",
+      "status": "PASS",
+      "detail": {
+        "photo": [
+          [
+            "#reading-editorial-photograph-your-plant",
+            "#reading-editorial-photograph-your-plant-section-1",
+            "#reading-editorial-photograph-your-plant-section-2",
+            "#reading-responses-editorial-photograph-your-plant"
+          ]
+        ],
+        "returned": [
+          [
+            "#reading-editorial-balcony-field-notes",
+            "#reading-editorial-balcony-field-notes-section-1",
+            "#reading-editorial-balcony-field-notes-section-2",
+            "#reading-responses-editorial-balcony-field-notes"
+          ]
+        ]
+      }
+    },
+    {
+      "name": "會員專欄手機維持單欄",
+      "status": "PASS",
+      "detail": {
+        "rails": [
+          "none",
+          "none"
+        ],
+        "scrollWidth": 375,
+        "width": 375
+      }
+    },
+    {
+      "name": "UUID 作者編輯載入完整文章",
+      "status": "PASS",
+      "detail": "會員01登入後可還原該篇標題、完整 Markdown、宋體大字級及所在地；未提交修改。"
+    },
+    {
+      "name": "既有討論手機畫面前後比對",
+      "status": "PASS",
+      "detail": {
+        "identicalScreenshotBytes": true
+      }
+    },
+    {
+      "name": "最終版討論閱讀與互動載入",
+      "status": "PASS",
+      "detail": "01a9726 版本文章、雙側欄及訪客回應入口正常，沒有讀取錯誤。",
+      "evidence": "desktop-discussion.jpg"
+    },
+    {
+      "name": "最終專題文章與手機畫面",
+      "status": "PASS",
+      "detail": {
+        "mobile": {
+          "rails": [
+            "none",
+            "none"
+          ],
+          "scrollWidth": 375,
+          "width": 375
+        },
+        "guest": true,
+        "qaDataCleaned": true
+      },
+      "evidence": "desktop-editorial.jpg"
+    }
+  ]
+}

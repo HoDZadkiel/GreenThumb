@@ -47,6 +47,8 @@ npm run dev
 
 桌面版文章閱讀頁在寬度 1200px 以上顯示本文導覽、作者資訊與延伸閱讀；討論、在地專欄及編輯精選共用版型，窄螢幕維持原有單欄閱讀方式。
 
+文章防護、資料遷移、桌機與手機畫面的正式站實測見 [本輪驗收紀錄](docs/testing/2026-11-15/content-reading/README.md)。
+
 會員狀態由全站共用，跨分頁登入／登出及視窗重新取得焦點時會同步驗證。登出或切換會員會清除前一會員的編輯內容；首次訪客登入仍保留剛寫下的內容。所有會員寫入會核對 `expectedUserId` 與實際 session，避免舊分頁把私人草稿存入新會員。舊版分頁收到 HTTP 409 時需重新整理。修正與驗收範圍見 [草稿隔離修正紀錄](docs/testing/2026-11-15/fixes.md)。
 
 執行 `npm run db:push -- --dry-run` 預覽 migration，`npm run db:push` 套用，`npm run db:check` 檢查資料表及權限。`npm run test:auth` 在隔離 PostgreSQL 中驗證 Google OAuth、session、草稿、發表、收藏與互動；模擬 Google 回應且不寄信。`npm run test:supabase` 保留歷史 migration 回歸測試。真實 Google 登入與 Gmail 收件的驗收步驟見 [會員登入設定](docs/authentication.md)。

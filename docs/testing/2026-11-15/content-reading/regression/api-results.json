@@ -1,0 +1,477 @@
+{
+  "base": "https://greenthumb-eta.vercel.app",
+  "run": "QA-20261115-29ecc227",
+  "startedAt": "2026-11-15T04:14:11.959Z",
+  "checks": [
+    {
+      "name": "訪客 session 與啟用的登入方式",
+      "status": "PASS"
+    },
+    {
+      "name": "訪客不能儲存草稿、收藏、修改暱稱、發文或發專欄",
+      "status": "PASS"
+    },
+    {
+      "name": "會員 1 帳密登入、cookie 安全與一般會員身分",
+      "status": "PASS"
+    },
+    {
+      "name": "會員 2 帳密登入、cookie 安全與一般會員身分",
+      "status": "PASS"
+    },
+    {
+      "name": "會員 3 帳密登入、cookie 安全與一般會員身分",
+      "status": "PASS"
+    },
+    {
+      "name": "錯誤密碼與不存在帳號均被拒絕",
+      "status": "PASS"
+    },
+    {
+      "name": "公開帳密註冊關閉",
+      "status": "PASS"
+    },
+    {
+      "name": "跨來源登入與會員寫入被拒絕",
+      "status": "PASS"
+    },
+    {
+      "name": "discussion 三帳號草稿各自儲存、更新及交錯讀取隔離",
+      "status": "PASS"
+    },
+    {
+      "name": "discussion 刪除草稿只影響自己",
+      "status": "PASS"
+    },
+    {
+      "name": "column 三帳號草稿各自儲存、更新及交錯讀取隔離",
+      "status": "PASS"
+    },
+    {
+      "name": "column 刪除草稿只影響自己",
+      "status": "PASS"
+    },
+    {
+      "name": "討論草稿容許尚未選完行政區",
+      "status": "PASS"
+    },
+    {
+      "name": "無效草稿類型、過長草稿與錯誤地區被拒絕",
+      "status": "PASS"
+    },
+    {
+      "name": "會員 1 發表討論、作者不可冒用、發表自動清除自己的草稿",
+      "status": "PASS"
+    },
+    {
+      "name": "會員 2 發表自己的討論",
+      "status": "PASS"
+    },
+    {
+      "name": "其他兩會員不能編輯會員 1 討論，會員 1 不能編輯會員 2 討論",
+      "status": "PASS"
+    },
+    {
+      "name": "作者編輯格式、分類、文字與所在地並跨 session 讀回",
+      "status": "PASS"
+    },
+    {
+      "name": "地圖圖釘連到正確討論並隨位置編輯與取消更新",
+      "status": "PASS"
+    },
+    {
+      "name": "討論欄位限制與位置錯配被拒絕",
+      "status": "PASS"
+    },
+    {
+      "name": "ImgBB 圖片來源可儲存於文章並讀回",
+      "status": "PASS"
+    },
+    {
+      "name": "收藏冪等、同會員另一 session 可見、其他帳號及訪客不可見",
+      "status": "PASS"
+    },
+    {
+      "name": "收藏無效文章編號與錯誤狀態被拒絕",
+      "status": "PASS"
+    },
+    {
+      "name": "會員 1 發專欄、作者不可冒用、自動清草稿",
+      "status": "PASS"
+    },
+    {
+      "name": "會員 2 發專欄、作者不可冒用、自動清草稿",
+      "status": "PASS"
+    },
+    {
+      "name": "專欄雙向越權編輯均被拒絕且內容不變",
+      "status": "PASS"
+    },
+    {
+      "name": "專欄作者可編輯內容與行政區",
+      "status": "PASS"
+    },
+    {
+      "name": "專欄必填、字數及行政區驗證",
+      "status": "PASS"
+    },
+    {
+      "name": "舊分頁身分或缺少預期會員的寫入被拒絕且不改變新會員草稿",
+      "status": "PASS"
+    },
+    {
+      "name": "post 訪客可閱讀但不能按讚或回覆",
+      "status": "PASS"
+    },
+    {
+      "name": "post 無效互動輸入被拒絕",
+      "status": "PASS"
+    },
+    {
+      "name": "post 個人按讚隔離、冪等及取消不影響其他人",
+      "status": "PASS"
+    },
+    {
+      "name": "post 回覆身分不可冒用、公開顯示及正確計數",
+      "status": "PASS"
+    },
+    {
+      "name": "post 閱讀頁、SEO 與互動區域",
+      "status": "PASS"
+    },
+    {
+      "name": "column 訪客可閱讀但不能按讚或回覆",
+      "status": "PASS"
+    },
+    {
+      "name": "column 無效互動輸入被拒絕",
+      "status": "PASS"
+    },
+    {
+      "name": "column 個人按讚隔離、冪等及取消不影響其他人",
+      "status": "PASS"
+    },
+    {
+      "name": "column 回覆身分不可冒用、公開顯示及正確計數",
+      "status": "PASS"
+    },
+    {
+      "name": "column 閱讀頁、SEO 與互動區域",
+      "status": "PASS"
+    },
+    {
+      "name": "editorial 訪客可閱讀但不能按讚或回覆",
+      "status": "PASS"
+    },
+    {
+      "name": "editorial 無效互動輸入被拒絕",
+      "status": "PASS"
+    },
+    {
+      "name": "editorial 個人按讚隔離、冪等及取消不影響其他人",
+      "status": "PASS"
+    },
+    {
+      "name": "editorial 回覆身分不可冒用、公開顯示及正確計數",
+      "status": "PASS"
+    },
+    {
+      "name": "editorial 閱讀頁、SEO 與互動區域",
+      "status": "PASS"
+    },
+    {
+      "name": "回覆分頁 30 筆、游標續讀與計數一致",
+      "status": "PASS"
+    },
+    {
+      "name": "暱稱修改、跨 session 讀回與冒用會員編號不影響他人",
+      "status": "PASS"
+    },
+    {
+      "name": "非法編號、游標、分頁與不存在內容的回應",
+      "status": "PASS"
+    },
+    {
+      "name": "JSON 格式、請求大小、Content-Type 與 HTTP 方法防護",
+      "status": "PASS"
+    },
+    {
+      "name": "公開頁與編輯精選可讀；不存在文章顯示 404 並禁止索引",
+      "status": "FAIL",
+      "detail": "/discussions: expected 200, got 503: <!doctype html><html lang=\"zh-Hant\"><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=devic"
+    },
+    {
+      "name": "測試 session 1 登出、舊 cookie 失效且無法寫入",
+      "status": "PASS"
+    },
+    {
+      "name": "測試 session 2 登出、舊 cookie 失效且無法寫入",
+      "status": "PASS"
+    },
+    {
+      "name": "測試 session 3 登出、舊 cookie 失效且無法寫入",
+      "status": "PASS"
+    },
+    {
+      "name": "測試 session 4 登出、舊 cookie 失效且無法寫入",
+      "status": "PASS"
+    }
+  ],
+  "fixtures": {
+    "posts": [
+      {
+        "id": "23d0bc9f-e0bd-4670-a216-c9cd36acf4db",
+        "authorId": "04b4ebc3-5737-4dd4-b110-605a365e1008"
+      },
+      {
+        "id": "18daad28-e42e-4970-b011-c4792da0a65a",
+        "authorId": "8c20da87-b49d-4836-8f59-2ee04c6b143c"
+      }
+    ],
+    "columns": [
+      {
+        "id": "f8838965-256d-4b2d-b591-fb5f5dd401e0",
+        "authorId": "04b4ebc3-5737-4dd4-b110-605a365e1008"
+      },
+      {
+        "id": "acc96963-ec0d-486a-9194-139bc4e3a69b",
+        "authorId": "8c20da87-b49d-4836-8f59-2ee04c6b143c"
+      }
+    ],
+    "replies": [
+      {
+        "kind": "post",
+        "id": "133",
+        "authorId": "8c20da87-b49d-4836-8f59-2ee04c6b143c",
+        "body": "QA-20261115-29ecc227-reply-post <script>alert(1)</script>"
+      },
+      {
+        "kind": "column",
+        "id": "11",
+        "authorId": "8c20da87-b49d-4836-8f59-2ee04c6b143c",
+        "body": "QA-20261115-29ecc227-reply-column <script>alert(1)</script>"
+      },
+      {
+        "kind": "editorial",
+        "id": "12",
+        "authorId": "8c20da87-b49d-4836-8f59-2ee04c6b143c",
+        "body": "QA-20261115-29ecc227-reply-editorial <script>alert(1)</script>"
+      },
+      {
+        "kind": "post",
+        "id": "134",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-0"
+      },
+      {
+        "kind": "post",
+        "id": "135",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-1"
+      },
+      {
+        "kind": "post",
+        "id": "136",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-2"
+      },
+      {
+        "kind": "post",
+        "id": "137",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-3"
+      },
+      {
+        "kind": "post",
+        "id": "138",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-4"
+      },
+      {
+        "kind": "post",
+        "id": "139",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-5"
+      },
+      {
+        "kind": "post",
+        "id": "140",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-6"
+      },
+      {
+        "kind": "post",
+        "id": "141",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-7"
+      },
+      {
+        "kind": "post",
+        "id": "142",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-8"
+      },
+      {
+        "kind": "post",
+        "id": "143",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-9"
+      },
+      {
+        "kind": "post",
+        "id": "144",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-10"
+      },
+      {
+        "kind": "post",
+        "id": "145",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-11"
+      },
+      {
+        "kind": "post",
+        "id": "146",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-12"
+      },
+      {
+        "kind": "post",
+        "id": "147",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-13"
+      },
+      {
+        "kind": "post",
+        "id": "148",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-14"
+      },
+      {
+        "kind": "post",
+        "id": "149",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-15"
+      },
+      {
+        "kind": "post",
+        "id": "150",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-16"
+      },
+      {
+        "kind": "post",
+        "id": "151",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-17"
+      },
+      {
+        "kind": "post",
+        "id": "152",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-18"
+      },
+      {
+        "kind": "post",
+        "id": "153",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-19"
+      },
+      {
+        "kind": "post",
+        "id": "154",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-20"
+      },
+      {
+        "kind": "post",
+        "id": "155",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-21"
+      },
+      {
+        "kind": "post",
+        "id": "156",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-22"
+      },
+      {
+        "kind": "post",
+        "id": "157",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-23"
+      },
+      {
+        "kind": "post",
+        "id": "158",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-24"
+      },
+      {
+        "kind": "post",
+        "id": "159",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-25"
+      },
+      {
+        "kind": "post",
+        "id": "160",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-26"
+      },
+      {
+        "kind": "post",
+        "id": "161",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-27"
+      },
+      {
+        "kind": "post",
+        "id": "162",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-28"
+      },
+      {
+        "kind": "post",
+        "id": "163",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-29"
+      },
+      {
+        "kind": "post",
+        "id": "164",
+        "authorId": "b07d8dc4-a079-4641-a360-44bafe07a0be",
+        "body": "QA-20261115-29ecc227-pagination-30"
+      }
+    ]
+  },
+  "restoration": [
+    {
+      "member": 1,
+      "status": "PASS"
+    },
+    {
+      "member": 2,
+      "status": "PASS"
+    },
+    {
+      "member": 3,
+      "status": "PASS"
+    }
+  ],
+  "auth": {
+    "google": false,
+    "email": false,
+    "password": true
+  },
+  "rejectedLoginStatuses": [
+    401,
+    429
+  ],
+  "finishedAt": "2026-11-15T04:21:13.757Z",
+  "summary": {
+    "passed": 52,
+    "failed": 1,
+    "restored": true
+  }
+}

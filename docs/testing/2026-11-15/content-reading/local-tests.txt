@@ -1,0 +1,35 @@
+✔ content reads cover HTML, RSC and API aliases without blocking assets or sign-in (1.3457ms)
+✔ Vercel-only client identity ignores spoofed forwarding, cookies and IPv6 spellings (26.7515ms)
+✔ 429 and unavailable storage responses instruct retries without leaking or caching errors (3.7946ms)
+✔ temporary session capacity waits for a free connection before starting work (617.9432ms)
+✔ other connection failures are not retried (0.4065ms)
+✔ failure after a transaction starts rolls back once without replaying work (0.3489ms)
+✔ registration preserves passwords and validates profile input (1.2511ms)
+✔ posts reject invalid images, sizes, identifiers and oversized content (0.7301ms)
+✔ columns reject invented regions and callback redirects stay local (0.3773ms)
+✔ discussion locations are optional, validate districts, and allow unfinished draft selections (0.8819ms)
+✔ cloud drafts accept unfinished content, preserve formatting, and reject forged data (0.583ms)
+✔ cross-tab logout clears member-owned editors before a new member is loaded (9.166ms)
+✔ same-tab logout resets private editor state; first guest sign-in preserves unsaved guest input (0.2783ms)
+✔ late requests cannot restore a logged-out member or replace a newer session (1.7577ms)
+✔ focus, visible pages and back-forward navigation revalidate a missed account switch (1.0369ms)
+✔ same-window notifications synchronize independently mounted page providers (0.8127ms)
+✔ signals never supply trusted identity and disconnected providers ignore old events (0.4472ms)
+✔ all member mutation paths reject a stale or missing owner before any database access (2.4488ms)
+✔ write client pins the captured owner and rejects mismatched sessions without retrying (20.3289ms)
+✔ a server identity mismatch immediately invalidates private UI and fetches the actual member (2.7946ms)
+✔ Google OAuth creates a portable member and preserves RLS across forum workflows (1752.7369ms)
+✔ SMTP OTP login stores hashes, expires, rejects replay, and limits sends (818.9528ms)
+✔ configuration and SMTP are explicit and secure by default (0.7491ms)
+✔ password login validates stored credentials, creates a member session, and keeps sign-up closed (1390.7885ms)
+✔ migration preserves legacy member UUIDs and posts without Supabase Auth dependencies (666.6098ms)
+✔ public post IDs preserve internal relationships, pagination and ownership without leaking full bodies (916.311ms)
+✔ content limits share atomic PostgreSQL counters, reset and clean only expired content records (822.2071ms)
+ℹ tests 27
+ℹ suites 0
+ℹ pass 27
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 9179.0715

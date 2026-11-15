@@ -1,0 +1,12 @@
+{
+  "status": "PASS",
+  "cleanedAt": "2026-11-15T04:32:56.632Z",
+  "counts": {
+    "posts": 2,
+    "columns": 2,
+    "replies": 34,
+    "drafts": 0
+  },
+  "remainingFixtures": 0,
+  "accountsPreserved": true
+}

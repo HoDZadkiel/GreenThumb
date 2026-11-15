@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "checkedAt": "2026-11-15T04:37:37.515Z",
+  "requestsThroughFirst429": 31,
+  "elapsedInWindowMs": 35286,
+  "retryAfter": 29,
+  "sharedListAliases": true,
+  "spoofedHeadersAndCookieDidNotBypass": true,
+  "memberSessionStillAvailable": true
+}

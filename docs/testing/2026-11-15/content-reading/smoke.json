@@ -1,0 +1,17 @@
+{
+  "base": "https://greenthumb-eta.vercel.app",
+  "commit": "01a9726",
+  "status": "PASS",
+  "checkedAt": "2026-11-15T04:39:49.020Z",
+  "checks": [
+    "兩篇原討論均使用 UUID v4，列表只傳摘要且無內部主鍵／完整內文",
+    "舊數字網址及 API 不再提供文章，無轉址揭露 UUID",
+    "兩篇新網址與詳細 API 可讀，桌面共用閱讀版型已部署",
+    "地圖改用 UUID 文章連結",
+    "robots 排除 API 與編輯頁，公開文章仍允許搜尋索引"
+  ],
+  "postIds": [
+    "d14ac2bc-564b-4768-bc4f-9b4e959098e3",
+    "7f63584e-68b5-46ed-8d29-4014f3a4881d"
+  ]
+}
