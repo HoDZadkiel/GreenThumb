@@ -17,7 +17,7 @@ async function Article({params}:Props){
   const {slug}=await params;
   const article=await getEditorial(slug);
   if(!article)notFound();
-  return <ArticleReadingLayout title={article.title} body={article.body} author={article.author_name} category={article.category} editorialSlug={article.slug}><article className="editorial-article">
+  return <ArticleReadingLayout articleKey={`editorial-${article.slug}`} title={article.title} body={article.body} author={article.author_name} category={article.category} editorialSlug={article.slug}><article className="editorial-article">
     <Link className="text-link" href="/columns"><ArrowLeft size={16}/>返回專欄</Link>
     <header className={'editorial-article-heading '+article.color}>
       <p className="eyebrow">GREENTHUMB FIELD NOTES · {article.category}</p>

@@ -98,6 +98,7 @@ function ArticleInteractionPanel({ kind, id, title, path }: Props) {
   }
 
   return <section id="article-responses" className="article-interactions" aria-labelledby={`${sectionId}-heading`}>
+    <span id={`reading-responses-${kind}-${id}`} aria-hidden="true" />
     <div className="article-social-actions">
       <button type="button" className={ready && data!.liked ? "is-liked" : ""} aria-pressed={ready && data!.liked} disabled={loading || pending || !ready} onClick={toggleLike}>
         <Heart size={18} fill={ready && data!.liked ? "currentColor" : "none"} />{ready && data!.liked ? "已按讚" : "按讚"}<span>{ready ? data!.likeCount : "—"}</span>

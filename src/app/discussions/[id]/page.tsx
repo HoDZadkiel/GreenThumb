@@ -30,7 +30,7 @@ async function DiscussionArticle({ params }: Props) {
   const regionNames: Record<string, string> = { north: "北部", central: "中部", south: "南部", east: "東部", island: "離島", indoor: "室內", highland: "高山" };
   const types: Record<string, string> = { question: "發問", share: "分享", guide: "教學" };
   const location = getRegion(post.regionCode ?? "");
-  return <ArticleReadingLayout title={post.title} body={post.body} author={post.author} category={post.category} location={location?`${location.county} · ${location.district}`:undefined}><article className="editorial-article discussion-article">
+  return <ArticleReadingLayout articleKey={`post-${post.id}`} title={post.title} body={post.body} author={post.author} category={post.category} location={location?`${location.county} · ${location.district}`:undefined}><article className="editorial-article discussion-article">
     <nav className="article-navigation" aria-label="文章導覽"><Link className="text-link" href="/discussions"><ArrowLeft size={16} />返回討論區</Link><DiscussionEditLink id={post.id} authorId={post.authorId} /></nav>
     <header className="editorial-article-heading sage">
       <p className="eyebrow">{post.category} · {types[post.postType] ?? "討論"}</p>
