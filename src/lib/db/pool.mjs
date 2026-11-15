@@ -16,7 +16,7 @@ export function runtimeDatabaseUrl(env = process.env) {
   return parsed.href;
 }
 
-function newDatabasePool(max = 2, name = "greenthumb") {
+function newDatabasePool(max = 1, name = "greenthumb") {
     const url = new URL(runtimeDatabaseUrl());
     const ssl = databaseSsl(url.href);
     // URL SSL parameters otherwise override the explicitly supplied CA in node-postgres.
@@ -25,7 +25,7 @@ function newDatabasePool(max = 2, name = "greenthumb") {
       connectionString: url.href,
       ssl,
       max,
-      idleTimeoutMillis: 3_000,
+      idleTimeoutMillis: 1_000,
       connectionTimeoutMillis: 12_000,
       query_timeout: 15_000,
       application_name: name,
@@ -45,11 +45,24 @@ export function databasePool() {
 
 // Proxy may run in a different isolate for each request. Close its single
 // connection before continuing instead of leaving sessions in suspended workers.
-/** @template T @param {(pool: import('pg').Pool) => Promise<T>} work */
+/** @template T @param {(client: import('pg').PoolClient) => Promise<T>} work */
 export async function withContentLimitDatabase(work) {
   const pool = newDatabasePool(1,"greenthumb-content");
-  try { return await work(pool); }
-  finally { await pool.end(); }
+  let connection;
+  try { connection=await connectDatabase(pool);return await work(connection); }
+  finally { connection?.release();await pool.end(); }
+}
+
+// Retry only a connection rejected before a transaction starts. Never replay a
+// query or write whose outcome might already have committed.
+export async function connectDatabase(pool) {
+  for(let attempt=0;;attempt++){
+    try { return await pool.connect(); }
+    catch(error){
+      if(attempt>=3 || error.code!=='XX000' || !/max clients reached in session mode/i.test(error.message)) throw error;
+      await new Promise(resolve=>setTimeout(resolve,200*2**attempt));
+    }
+  }
 }
 
 // The SET LOCAL values and role end with this transaction, including on pooled connections.
@@ -64,7 +77,7 @@ export async function withMemberDatabase(pool, userId, work) {
 }
 
 async function memberTransaction(pool,userId,work) {
-  const connection = await pool.connect();
+  const connection = await connectDatabase(pool);
   let broken = false;
   try {
     await connection.query("begin");
