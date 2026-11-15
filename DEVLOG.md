@@ -258,6 +258,7 @@
 - 本輪依 fixture ID、作者及獨立 QA 標記清除 3 篇討論、3 篇專欄、35 則回覆與 3 份測試草稿；重新透過 Vercel 核對三會員原暱稱／權限／草稿與收藏、六個 fixture 404、既有兩篇討論與精選內容保留，測試 session 已登出，瀏覽器首頁重整恢復兩篇討論。
 - 新增防護通過 7 項會員／PostgreSQL 整合、3 項讀取防護、5 項輸入驗證、9 項 session 回歸及 ESLint／TypeScript；本機 Turbopack 快取保存至 .local 後，正式建置 22/22 預渲染工作通過，沒有啟動 self-host。
 - 已預覽並套用唯一待執行的 00007_public_post_ids.sql；兩篇原討論皆取得不同 UUID，六類既有資料的內容指紋與全部 RLS 設定不變，保留 4 位會員及既有文章。遷移結果見 docs/testing/2026-11-15/content-reading/migration.json。
+- 首次 Vercel 驗收發現限流 Proxy 的閒置連線占滿 15 條 session pool，造成內容讀取 503；將 Proxy 改為每次只開一條連線並於 finally 明確關閉，保留會員查詢的原共用池。只釋放三條超過一分鐘且非交易中的閒置網站連線後，以受限帳號確認限流 SQL 正常；修正版正式建置通過。
 
 ### 待辦事項（TODO）
 - F01／F02 部署後複驗與 fixture 清理已完成；本輪沒有再現兩項缺陷，結果及限制見 docs/testing/2026-11-15/post-fix/README.md。

@@ -14,25 +14,39 @@ export function runtimeDatabaseUrl(env = process.env) {
   return parsed.href;
 }
 
-export function databasePool() {
-  if (!globals.greenthumbPool) {
+function newDatabasePool(max = 5, name = "greenthumb") {
     const url = new URL(runtimeDatabaseUrl());
     const ssl = databaseSsl(url.href);
     // URL SSL parameters otherwise override the explicitly supplied CA in node-postgres.
     for (const parameter of ["sslmode", "sslrootcert", "sslcert", "sslkey"]) url.searchParams.delete(parameter);
-    globals.greenthumbPool = new Pool({
+    const pool = new Pool({
       connectionString: url.href,
       ssl,
-      max: 5,
+      max,
       idleTimeoutMillis: 20_000,
       connectionTimeoutMillis: 12_000,
       query_timeout: 15_000,
-      application_name: "greenthumb",
+      application_name: name,
     });
     // Do not log driver errors: they can contain connection details.
-    globals.greenthumbPool.on("error", () => {});
+    pool.on("error", () => {});
+    return pool;
+}
+
+export function databasePool() {
+  if (!globals.greenthumbPool) {
+    globals.greenthumbPool = newDatabasePool();
   }
   return globals.greenthumbPool;
+}
+
+// Proxy may run in a different isolate for each request. Close its single
+// connection before continuing instead of leaving sessions in suspended workers.
+/** @template T @param {(pool: import('pg').Pool) => Promise<T>} work */
+export async function withContentLimitDatabase(work) {
+  const pool = newDatabasePool(1,"greenthumb-content");
+  try { return await work(pool); }
+  finally { await pool.end(); }
 }
 
 // The SET LOCAL values and role end with this transaction, including on pooled connections.

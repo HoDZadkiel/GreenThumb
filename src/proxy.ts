@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { databasePool } from "@/lib/db/pool.mjs";
+import { withContentLimitDatabase } from "@/lib/db/pool.mjs";
 import { contentClientKey, contentGuardResponse, contentReadPolicy, consumeContentRead } from "@/lib/content-guard.mjs";
 
 // Protected APIs validate the database session themselves.
@@ -7,7 +7,8 @@ export async function proxy(request: NextRequest) {
   const policy = contentReadPolicy(request.method,request.nextUrl);
   if (policy) {
     try {
-      const result = await consumeContentRead(databasePool(),contentClientKey(request.headers),policy);
+      const key = contentClientKey(request.headers);
+      const result = await withContentLimitDatabase(pool=>consumeContentRead(pool,key,policy));
       if (!result.allowed) return contentGuardResponse(request.nextUrl.pathname.startsWith('/api/'),429,result.retryAfter);
     } catch {
       // Do not expose database errors, and do not silently disable protection.
