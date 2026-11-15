@@ -14,6 +14,7 @@
 - 同一來源共用每分鐘 90 次內容讀取額度，其中列表最多 30 次。切換文章 ID、路由、會員 cookie 或 User-Agent 都不建立新額度。
 - 計數使用現有 `gt_rate_limit` 與 PostgreSQL 原子 upsert，多個 Vercel 執行個體共用；沒有僅存於單一程序的 Map，也不新增外部服務。
 - Proxy 每次檢查只開一條連線，並在返回網站前於 finally 關閉；不將連線留在可能暫停的 Proxy 執行個體。這避免目前小型 session pool 被閒置連線占滿。
+- 一般 API／文章共用池上限為 2、閒置逾 3 秒釋放，使用 Vercel 官方 `attachDatabasePool`；交易 promise 也掛入請求生命週期，避免 RSC／預載請求取消時留下未完成的讀取交易。參考 [Vercel 連線管理文件](https://vercel.com/docs/functions/functions-api-reference/vercel-functions-package#attachdatabasepool)。
 - 超限回應 429、`Retry-After`、`private, no-store` 及 noindex。計數儲存不可用時回應 503 與重試提示，避免悄悄解除防護。
 - 使用固定的一分鐘視窗；在視窗邊界可能出現雙倍短時突發。這是基本節流，並非滑動視窗流量防火牆。
 - 只在 `VERCEL=1` 的執行環境信任 Vercel 注入的 `x-vercel-forwarded-for`，不採用瀏覽器自填的通用 forwarded header。平台標頭說明見 [Vercel 官方文件](https://vercel.com/docs/headers/request-headers#x-vercel-forwarded-for)。

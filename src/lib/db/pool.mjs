@@ -1,4 +1,6 @@
 import { Pool } from "pg";
+import { attachDatabasePool } from "@vercel/functions/db-connections";
+import { waitUntil } from "@vercel/functions";
 import { databaseSsl } from "./tls.mjs";
 
 const globals = globalThis;
@@ -14,7 +16,7 @@ export function runtimeDatabaseUrl(env = process.env) {
   return parsed.href;
 }
 
-function newDatabasePool(max = 5, name = "greenthumb") {
+function newDatabasePool(max = 2, name = "greenthumb") {
     const url = new URL(runtimeDatabaseUrl());
     const ssl = databaseSsl(url.href);
     // URL SSL parameters otherwise override the explicitly supplied CA in node-postgres.
@@ -23,7 +25,7 @@ function newDatabasePool(max = 5, name = "greenthumb") {
       connectionString: url.href,
       ssl,
       max,
-      idleTimeoutMillis: 20_000,
+      idleTimeoutMillis: 3_000,
       connectionTimeoutMillis: 12_000,
       query_timeout: 15_000,
       application_name: name,
@@ -36,6 +38,7 @@ function newDatabasePool(max = 5, name = "greenthumb") {
 export function databasePool() {
   if (!globals.greenthumbPool) {
     globals.greenthumbPool = newDatabasePool();
+    attachDatabasePool(globals.greenthumbPool);
   }
   return globals.greenthumbPool;
 }
@@ -54,6 +57,13 @@ export async function withMemberDatabase(pool, userId, work) {
   if (userId !== null && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) {
     throw new Error("無效的會員身分。");
   }
+  const operation = memberTransaction(pool,userId,work);
+  // A cancelled RSC/prefetch response must not suspend an unfinished transaction.
+  if(process.env.VERCEL === '1') waitUntil(operation.catch(()=>{}));
+  return operation;
+}
+
+async function memberTransaction(pool,userId,work) {
   const connection = await pool.connect();
   let broken = false;
   try {

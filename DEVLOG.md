@@ -260,6 +260,7 @@
 - 已預覽並套用唯一待執行的 00007_public_post_ids.sql；兩篇原討論皆取得不同 UUID，六類既有資料的內容指紋與全部 RLS 設定不變，保留 4 位會員及既有文章。遷移結果見 docs/testing/2026-11-15/content-reading/migration.json。
 - 首次 Vercel 驗收發現限流 Proxy 的閒置連線占滿 15 條 session pool，造成內容讀取 503；將 Proxy 改為每次只開一條連線並於 finally 明確關閉，保留會員查詢的原共用池。只釋放三條超過一分鐘且非交易中的閒置網站連線後，以受限帳號確認限流 SQL 正常；修正版正式建置通過。
 - Vercel 新網址、舊數字網址停用、摘要、地圖及 robots 已通過唯讀驗收；桌面討論／精選畫面、手機單欄、1199／1200px 斷點無水平溢出。切換文章時觀察到 Next.js 保留舊頁面 DOM，因此將本文目錄查詢及段落／回應錨點改為每篇文章獨立，內容改變時也重建目錄；修正版 lint／正式建置通過。
+- 持續正式站驗收另發現一般查詢池在函式暫停／預載取消後也會保留連線；引入 Vercel 官方 functions 3.11.3 的 attachDatabasePool，將一般池調為最多 2 條、3 秒閒置釋放，並以 waitUntil 保護交易完成／回滾及釋放。保留原 TLS、SET LOCAL 身分與 RLS，不以解除防護或提升資料庫權限消除 503。
 
 ### 待辦事項（TODO）
 - F01／F02 部署後複驗與 fixture 清理已完成；本輪沒有再現兩項缺陷，結果及限制見 docs/testing/2026-11-15/post-fix/README.md。
