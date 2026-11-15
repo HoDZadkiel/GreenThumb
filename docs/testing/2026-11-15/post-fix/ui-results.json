@@ -1,0 +1,248 @@
+{
+  "base": "https://greenthumb-eta.vercel.app",
+  "commit": "5e42ad7fc9c803cd2236b75bcd04b9cb140be8ce",
+  "marker": "QA-UI-20261115-postfix-updjib",
+  "checks": [
+    {
+      "name": "首頁搜尋、摘要列表與熱門排序",
+      "status": "PASS",
+      "detail": "搜尋龍舌蘭顯示 1 篇；摘要與熱門控制項已選取。",
+      "evidence": "01-home.jpg"
+    },
+    {
+      "name": "分類、地區、最多回覆與清除篩選",
+      "status": "PASS",
+      "detail": "南部與花卉分類正確顯示空狀態，清除篩選可還原。"
+    },
+    {
+      "name": "地圖搜尋、縣市、圖釘、縮放與重設",
+      "status": "PASS",
+      "detail": "圖釘彈窗連到正確討論；縣市與搜尋可交集篩選，空狀態及重設正常。",
+      "evidence": "02-map-pin.jpg"
+    },
+    {
+      "name": "手機地圖版面",
+      "status": "PASS",
+      "detail": {
+        "document": 375,
+        "viewport": 390
+      },
+      "evidence": "03-mobile-map.jpg"
+    },
+    {
+      "name": "精選閱讀與分享網址",
+      "status": "PASS",
+      "detail": {
+        "shared": "https://greenthumb-eta.vercel.app/columns/balcony-field-notes",
+        "expected": "https://greenthumb-eta.vercel.app/columns/balcony-field-notes"
+      }
+    },
+    {
+      "name": "手機精選閱讀版面",
+      "status": "PASS",
+      "detail": {
+        "document": 375,
+        "viewport": 390
+      },
+      "evidence": "04-mobile-editorial.jpg"
+    },
+    {
+      "name": "訪客按讚導向登入",
+      "status": "PASS",
+      "detail": "未登入按讚開啟登入表單，Google 入口停用。",
+      "evidence": "05-guest-login-gate.jpg"
+    },
+    {
+      "name": "手機首頁版面",
+      "status": "PASS",
+      "detail": {
+        "document": 375,
+        "viewport": 390
+      },
+      "evidence": "06-mobile-home.jpg"
+    },
+    {
+      "name": "必填、範本與七種 Markdown 工具",
+      "status": "PASS",
+      "detail": "空白發表顯示必填提示；範本與各格式工具可插入內容。"
+    },
+    {
+      "name": "位置驗證、字體、對照與安全預覽",
+      "status": "PASS",
+      "detail": {
+        "font": "\"Noto Serif TC Variable\", \"Songti TC\", PMingLiU, serif",
+        "fontSize": "18px",
+        "scriptCount": 0,
+        "unsafeLinks": 0
+      },
+      "evidence": "07-guest-preview.jpg"
+    },
+    {
+      "name": "圖片來源驗證",
+      "status": "PASS",
+      "detail": "非 ImgBB 連結被拒絕並顯示直接連結提示；已清空網址欄位。"
+    },
+    {
+      "name": "訪客首次登入保留尚未儲存內容",
+      "status": "PASS",
+      "detail": {
+        "titlePreserved": true,
+        "bodyPreserved": true
+      },
+      "evidence": "08-guest-content-preserved.jpg"
+    },
+    {
+      "name": "討論與專欄雲端草稿儲存及重整還原",
+      "status": "PASS",
+      "detail": {
+        "discussion": "QA-UI-20261115-postfix-updjib-會員01私密討論",
+        "column": "QA-UI-20261115-postfix-updjib-會員01私密專欄"
+      },
+      "evidence": "09-member01-discussion-before-switch.jpg"
+    },
+    {
+      "name": "F02 專欄登出即清除私人內容",
+      "status": "PASS",
+      "detail": {
+        "fields": [
+          "",
+          "",
+          ""
+        ],
+        "savedStatus": 0
+      },
+      "evidence": "11-column-logout-cleared.jpg"
+    },
+    {
+      "name": "F01 會員02專欄不帶入會員01草稿",
+      "status": "PASS",
+      "detail": {
+        "fields": [
+          "",
+          "",
+          ""
+        ]
+      },
+      "evidence": "12-member02-column-isolated.jpg"
+    },
+    {
+      "name": "F01 跨分頁切換會員及返回快取討論頁",
+      "status": "PASS",
+      "detail": {
+        "fields": [
+          "",
+          "",
+          ""
+        ],
+        "county": "",
+        "font": "sans",
+        "oldMemberContentPresent": false
+      },
+      "evidence": "13-member02-cached-discussion-cleared.jpg"
+    },
+    {
+      "name": "會員02只還原自己後來儲存的內容",
+      "status": "PASS",
+      "detail": {
+        "title": "QA-UI-20261115-postfix-updjib-會員02自己的草稿",
+        "body": "MEMBER02_ONLY：這是會員02自己撰寫的內容。"
+      },
+      "evidence": "14-member02-own-draft.jpg"
+    },
+    {
+      "name": "F02 討論登出清空草稿、圖片、預覽及儲存狀態",
+      "status": "PASS",
+      "detail": {
+        "fields": [
+          "",
+          "",
+          ""
+        ],
+        "savedStatus": 0
+      },
+      "evidence": "15-discussion-logout-cleared.jpg"
+    },
+    {
+      "name": "會員03登入不帶入前兩會員內容",
+      "status": "PASS",
+      "detail": {
+        "fields": [
+          "",
+          "",
+          ""
+        ]
+      }
+    },
+    {
+      "name": "會員03正常發表討論",
+      "status": "PASS",
+      "detail": {
+        "href": "/discussions/14"
+      }
+    },
+    {
+      "name": "會員03正常發表在地專欄",
+      "status": "PASS",
+      "detail": {
+        "url": "https://greenthumb-eta.vercel.app/columns/community/127fa3d3-a2a8-41a8-af69-117f948e9788"
+      }
+    },
+    {
+      "name": "討論按讚、回覆與分享",
+      "status": "PASS",
+      "detail": {
+        "shared": "https://greenthumb-eta.vercel.app/discussions/14",
+        "replyAcknowledged": true
+      },
+      "evidence": "17-published-discussion-interactions.jpg"
+    },
+    {
+      "name": "作者編輯專欄所在地",
+      "status": "PASS",
+      "detail": "文章頁已顯示臺北市信義區。"
+    },
+    {
+      "name": "編輯位置與取消位置同步地圖",
+      "status": "PASS",
+      "detail": "搜尋本次 UI 標記後僅剩信義區專欄；已取消位置的討論不再出現在地圖。",
+      "evidence": "18-edited-column-map.jpg"
+    },
+    {
+      "name": "作者修改討論標題並取消位置",
+      "status": "PASS",
+      "detail": "文章頁顯示修訂標題，無所在地；地圖搜尋亦已排除該討論。"
+    },
+    {
+      "name": "討論與專欄拒絕其他會員編輯",
+      "status": "PASS",
+      "detail": "會員03直接開啟會員01兩種編輯網址均顯示無權限，沒有載入其編輯內容。"
+    },
+    {
+      "name": "回應分頁與純文字顯示",
+      "status": "PASS",
+      "detail": {
+        "initialReplyCount": 30,
+        "finalReplyCount": 32,
+        "moreButton": 0,
+        "injectedScripts": 0
+      }
+    },
+    {
+      "name": "收藏儲存、重整還原與取消",
+      "status": "PASS",
+      "detail": "按下收藏後重新載入仍顯示取消收藏，取消後恢復收藏入口。"
+    },
+    {
+      "name": "登出清除未送出回應並同步另一分頁",
+      "status": "PASS",
+      "detail": {
+        "fields": [
+          ""
+        ],
+        "guestAction": true,
+        "otherTabSignedOut": true
+      },
+      "evidence": "19-logged-out-reply-cleared.jpg"
+    }
+  ]
+}

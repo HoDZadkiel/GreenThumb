@@ -1,6 +1,6 @@
 # Vercel 正式站功能與帳號隔離驗收
 
-後續：[F01／F02 程式碼修正與回歸紀錄](fixes.md)。修正尚未部署；本報告保留修正前的正式站實測結果。
+後續：[F01／F02 程式碼修正與回歸紀錄](fixes.md)；[修正部署後的 Vercel 複測](post-fix/README.md) 已通過 53 項 API 與 29 項瀏覽器檢查。本報告保留修正前的正式站實測結果。
 
 - 測試日期：2026-11-15，Asia/Taipei。
 - 唯一應用測試目標：<https://greenthumb-eta.vercel.app/>。沒有啟動或測試 self-host 網站。

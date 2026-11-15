@@ -7,9 +7,9 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 const base = 'https://greenthumb-eta.vercel.app';
 const accounts = JSON.parse(readFileSync('.local/test-accounts.json', 'utf8')).accounts;
 const run = 'QA-20261115-' + randomUUID().slice(0, 8);
-const folder = 'docs/testing/2026-11-15';
+const folder = process.env.GREENTHUMB_TEST_OUTPUT || 'docs/testing/2026-11-15';
 mkdirSync(folder, { recursive: true });
-const stateFile = '.local/vercel-regression-state.json';
+const stateFile = process.env.GREENTHUMB_TEST_STATE || '.local/vercel-regression-state.json';
 const report = { base, run, startedAt: new Date().toISOString(), checks: [], fixtures: { posts: [], columns: [], replies: [] }, restoration: [] };
 const originals = [];
 function persist() {
@@ -218,7 +218,8 @@ try {
     for(const name of ['', '字'.repeat(41)])await a.req('/api/member-data',{action:'profile',name},400);
   });
   await check('非法編號、游標、分頁與不存在內容的回應',async()=>{
-    for(const path of ['/api/forum?id=invalid','/api/forum?id=9223372036854775808','/api/forum?cursor=invalid','/api/map-posts?cursor=invalid','/api/expert-columns?offset=-1','/api/expert-columns?offset=1.5','/api/article-interactions?kind=invalid&id=3','/api/article-interactions?kind=post&id='+post.id+'&cursor=invalid'])await g.req(path,undefined,400);
+    for(const path of ['/api/forum?id=invalid','/api/forum?id=3','/api/forum?id=9223372036854775808'])await g.req(path,undefined,404);
+    for(const path of ['/api/forum?cursor=invalid','/api/map-posts?cursor=invalid','/api/expert-columns?offset=-1','/api/expert-columns?offset=1.5','/api/article-interactions?kind=invalid&id=3','/api/article-interactions?kind=post&id='+post.id+'&cursor=invalid'])await g.req(path,undefined,400);
     for(const path of ['/api/forum?id=9223372036854775807','/api/expert-columns?id='+randomUUID(),'/api/article-interactions?kind=editorial&id=qa-does-not-exist'])await g.req(path,undefined,404);
   });
   await check('JSON 格式、請求大小、Content-Type 與 HTTP 方法防護',async()=>{

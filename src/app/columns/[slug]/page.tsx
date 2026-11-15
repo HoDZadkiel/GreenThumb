@@ -6,6 +6,7 @@ import {ArrowLeft} from 'lucide-react';
 import {CommunityHome} from '@/components/community/community-home';
 import {ArticleMarkdown} from '@/components/community/article-markdown';
 import {ArticleInteractions} from '@/components/community/article-interactions';
+import {ArticleReadingLayout} from '@/components/community/article-reading-layout';
 import {getEditorial} from '@/lib/editorial';
 type Props={params:Promise<{slug:string}>};
 export async function generateMetadata({params}:Props):Promise<Metadata>{
@@ -16,7 +17,7 @@ async function Article({params}:Props){
   const {slug}=await params;
   const article=await getEditorial(slug);
   if(!article)notFound();
-  return <article className="editorial-article">
+  return <ArticleReadingLayout title={article.title} body={article.body} author={article.author_name} category={article.category} editorialSlug={article.slug}><article className="editorial-article">
     <Link className="text-link" href="/columns"><ArrowLeft size={16}/>返回專欄</Link>
     <header className={'editorial-article-heading '+article.color}>
       <p className="eyebrow">GREENTHUMB FIELD NOTES · {article.category}</p>
@@ -24,6 +25,6 @@ async function Article({params}:Props){
     </header>
     <ArticleMarkdown body={article.body} font="sans" fontSize={16}/>
     <ArticleInteractions kind="editorial" id={article.slug} title={article.title} path={`/columns/${article.slug}`}/>
-  </article>;
+  </article></ArticleReadingLayout>;
 }
-export default function ColumnPage(props:Props){return <CommunityHome view="columns"><Suspense fallback={<p role="status">載入專欄…</p>}><Article {...props}/></Suspense></CommunityHome>;}
+export default function ColumnPage(props:Props){return <CommunityHome view="article"><Suspense fallback={<p role="status">載入專欄…</p>}><Article {...props}/></Suspense></CommunityHome>;}

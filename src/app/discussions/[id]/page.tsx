@@ -8,6 +8,7 @@ import { CommunityHome } from "@/components/community/community-home";
 import { ArticleMarkdown } from "@/components/community/article-markdown";
 import { ArticleInteractions } from "@/components/community/article-interactions";
 import { DiscussionEditLink } from "@/components/community/discussion-edit-link";
+import { ArticleReadingLayout } from "@/components/community/article-reading-layout";
 import { createClient } from "@/lib/db/server";
 import { getPost } from "@/lib/db/forum";
 import { validPostId } from "@/lib/forum-input.mjs";
@@ -29,7 +30,7 @@ async function DiscussionArticle({ params }: Props) {
   const regionNames: Record<string, string> = { north: "北部", central: "中部", south: "南部", east: "東部", island: "離島", indoor: "室內", highland: "高山" };
   const types: Record<string, string> = { question: "發問", share: "分享", guide: "教學" };
   const location = getRegion(post.regionCode ?? "");
-  return <article className="editorial-article discussion-article">
+  return <ArticleReadingLayout title={post.title} body={post.body} author={post.author} category={post.category} location={location?`${location.county} · ${location.district}`:undefined}><article className="editorial-article discussion-article">
     <nav className="article-navigation" aria-label="文章導覽"><Link className="text-link" href="/discussions"><ArrowLeft size={16} />返回討論區</Link><DiscussionEditLink id={post.id} authorId={post.authorId} /></nav>
     <header className="editorial-article-heading sage">
       <p className="eyebrow">{post.category} · {types[post.postType] ?? "討論"}</p>
@@ -39,7 +40,7 @@ async function DiscussionArticle({ params }: Props) {
     {post.font ? <ArticleMarkdown body={post.body} font={post.font} fontSize={post.fontSize} /> : <div className="article-plain-body">{post.body}</div>}
     {post.images.length > 0 && <ul className="discussion-article-photos">{post.images.map((url, index) => <li key={url}><Image src={url} alt={`植物照片 ${index + 1}`} width={760} height={480} unoptimized referrerPolicy="no-referrer" /></li>)}</ul>}
     <ArticleInteractions kind="post" id={post.id} title={post.title} path={`/discussions/${post.id}`} />
-  </article>;
+  </article></ArticleReadingLayout>;
 }
 
 export default function DiscussionPage(props: Props) {

@@ -43,6 +43,10 @@ npm run dev
 
 討論文章 `/discussions/[id]`、在地專欄 `/columns/community/[id]` 與編輯精選 `/columns/[slug]` 都有獨立閱讀頁，支援登入後回應、按讚／取消讚，以及複製固定網址分享。首頁精選、文章、互動、會員草稿與收藏都從 Supabase 讀寫，不混入示範文章或本機內容。
 
+討論文章對外使用隨機 UUID，舊數字網址停用；既有收藏、回覆及所有權仍保留。清單僅回傳摘要，文章頁與公開讀取 API 共用每來源每分鐘 90 次、其中列表 30 次的資料庫限流，超量回應 429 與 Retry-After。部署前先套用 `00007_public_post_ids.sql`。範圍、限制與 Vercel 設定見 [內容讀取防護](docs/content-protection.md)；`npm run test:content` 與 `npm run test:auth` 驗證相關行為。
+
+桌面版文章閱讀頁在寬度 1200px 以上顯示本文導覽、作者資訊與延伸閱讀；討論、在地專欄及編輯精選共用版型，窄螢幕維持原有單欄閱讀方式。
+
 會員狀態由全站共用，跨分頁登入／登出及視窗重新取得焦點時會同步驗證。登出或切換會員會清除前一會員的編輯內容；首次訪客登入仍保留剛寫下的內容。所有會員寫入會核對 `expectedUserId` 與實際 session，避免舊分頁把私人草稿存入新會員。舊版分頁收到 HTTP 409 時需重新整理。修正與驗收範圍見 [草稿隔離修正紀錄](docs/testing/2026-11-15/fixes.md)。
 
 執行 `npm run db:push -- --dry-run` 預覽 migration，`npm run db:push` 套用，`npm run db:check` 檢查資料表及權限。`npm run test:auth` 在隔離 PostgreSQL 中驗證 Google OAuth、session、草稿、發表、收藏與互動；模擬 Google 回應且不寄信。`npm run test:supabase` 保留歷史 migration 回歸測試。真實 Google 登入與 Gmail 收件的驗收步驟見 [會員登入設定](docs/authentication.md)。

@@ -1,5 +1,5 @@
 import type { ForumUser } from "@/components/community/community-session";
-import type { ForumPost } from "@/lib/trial-forum-client";
+import type { ForumPost, ForumPostSummary } from "@/lib/trial-forum-client";
 import type { ArticlePin, ExpertColumn, ExpertColumnSummary } from "@/lib/expert-columns";
 import { assertSessionOwner, ForumError, validateColumn, validatePost, validColumnId, validPostId } from "@/lib/forum-input.mjs";
 import type { Database } from "./server";
@@ -18,19 +18,25 @@ export async function currentUser(db: Database): Promise<ForumUser | null> {
 
 const postSelect = `select p.*, b.name as board_name, u.display_name as author_name
   from public.posts p join public.boards b on b.id=p.board_id join public.profiles u on u.id=p.author_id`;
-type PostRow = { id: string; author_id: string; title: string; body: string; board_name: string; author_name: string; images: string[]; font: "sans" | "serif" | null; font_size: 14 | 16 | 18; created_at: Date; like_count: number; reply_count: number; region: string | null; region_code: string | null; post_type: string };
-const postResult = (row: PostRow): ForumPost => ({ id: String(row.id), authorId: row.author_id, author: row.author_name, title: row.title, body: row.body,
+type PostRow = { public_id: string; author_id: string; title: string; body: string; board_name: string; author_name: string; images: string[]; font: "sans" | "serif" | null; font_size: 14 | 16 | 18; created_at: Date; like_count: number; reply_count: number; region: string | null; region_code: string | null; post_type: string };
+const postResult = (row: PostRow): ForumPost => ({ id: row.public_id, authorId: row.author_id, author: row.author_name, title: row.title, body: row.body,
   category: row.board_name, images: row.images, font: row.font, fontSize: row.font_size, createdAt: row.created_at.toISOString(),
   likeCount: row.like_count, replyCount: row.reply_count, region: row.region, regionCode: row.region_code, postType: row.post_type });
 
 export async function listPosts(db: Database, cursor: string | null = null) {
   if (cursor && !validPostId(cursor)) throw new ForumError("文章分頁編號不正確。");
-  const { rows } = await db.query<PostRow>(`${postSelect} where p.deleted_at is null and ($1::bigint is null or p.id<$1) order by p.id desc limit 51`, [cursor]);
-  return { posts: rows.slice(0, 50).map(postResult), nextCursor: rows.length > 50 ? String(rows[49].id) : null };
+  const { rows } = await db.query<PostRow>(`select p.public_id,p.author_id,p.title,left(p.body,180) as body,p.region,p.region_code,p.post_type,
+    p.created_at,p.like_count,p.reply_count,b.name as board_name,u.display_name as author_name
+    from public.posts p join public.boards b on b.id=p.board_id join public.profiles u on u.id=p.author_id
+    where p.deleted_at is null and ($1::uuid is null or p.id<(select id from public.posts where public_id=$1)) order by p.id desc limit 51`, [cursor]);
+  const posts: ForumPostSummary[] = rows.slice(0,50).map(row => ({id:row.public_id,authorId:row.author_id,author:row.author_name,title:row.title,
+    excerpt:row.body,category:row.board_name,createdAt:row.created_at.toISOString(),likeCount:row.like_count,replyCount:row.reply_count,
+    region:row.region,regionCode:row.region_code,postType:row.post_type}));
+  return { posts, nextCursor: rows.length > 50 ? rows[49].public_id : null };
 }
 export async function getPost(db: Database, id: string) {
-  if (!validPostId(id)) throw new ForumError("文章編號不正確。");
-  const { rows } = await db.query<PostRow>(`${postSelect} where p.id=$1 and p.deleted_at is null`, [id]);
+  if (!validPostId(id)) return null;
+  const { rows } = await db.query<PostRow>(`${postSelect} where p.public_id=$1 and p.deleted_at is null`, [id]);
   return rows[0] ? postResult(rows[0]) : null;
 }
 export async function savePost(db: Database, user: ForumUser | null, input: Record<string, unknown>) {
@@ -40,20 +46,20 @@ export async function savePost(db: Database, user: ForumUser | null, input: Reco
   const values = [fields.title, fields.body, fields.board.slug, fields.images, fields.font, fields.fontSize, fields.regionCode];
   const result = input.id !== undefined
     ? await db.query(`update public.posts set title=$1,body=$2,board_id=(select id from public.boards where slug=$3),images=$4,font=$5,font_size=$6,
-        region_code=case when $8 then $7 else region_code end where id=$9 returning id`, [...values, input.regionCode !== undefined, input.id])
+        region_code=case when $8 then $7 else region_code end where public_id=$9 returning public_id`, [...values, input.regionCode !== undefined, input.id])
     : await db.query(`insert into public.posts (title,body,board_id,images,font,font_size,region_code,author_id)
-        values ($1,$2,(select id from public.boards where slug=$3),$4,$5,$6,$7,$8) returning id`, [...values, user.id]);
+        values ($1,$2,(select id from public.boards where slug=$3),$4,$5,$6,$7,$8) returning public_id`, [...values, user.id]);
   if (!result.rows[0]) throw new ForumError("找不到文章，或你沒有編輯權限。", 403);
-  return getPost(db, String(result.rows[0].id));
+  return getPost(db, result.rows[0].public_id);
 }
 export async function listMappedPosts(db: Database, cursor: string | null = null) {
   if (cursor !== null && !validPostId(cursor)) throw new ForumError("地圖文章分頁編號不正確。");
-  const { rows } = await db.query(`select p.id,p.title,p.region_code,p.created_at,u.display_name as author_name
+  const { rows } = await db.query(`select p.public_id,p.title,p.region_code,p.created_at,u.display_name as author_name
     from public.posts p join public.profiles u on u.id=p.author_id
-    where p.deleted_at is null and p.region_code is not null and ($1::bigint is null or p.id<$1) order by p.id desc limit 201`, [cursor]);
-  const pins: ArticlePin[] = rows.slice(0, 200).map(row => ({ id: `post:${row.id}`, kind: "post", title: row.title, author: row.author_name,
-    regionCode: row.region_code, createdAt: row.created_at.toISOString(), href: `/discussions/${row.id}` }));
-  return { pins, nextCursor: rows.length > 200 ? String(rows[199].id) : null };
+    where p.deleted_at is null and p.region_code is not null and ($1::uuid is null or p.id<(select id from public.posts where public_id=$1)) order by p.id desc limit 201`, [cursor]);
+  const pins: ArticlePin[] = rows.slice(0, 200).map(row => ({ id: `post:${row.public_id}`, kind: "post", title: row.title, author: row.author_name,
+    regionCode: row.region_code, createdAt: row.created_at.toISOString(), href: `/discussions/${row.public_id}` }));
+  return { pins, nextCursor: rows.length > 200 ? rows[199].public_id : null };
 }
 
 const columnSelect = `select c.*, p.display_name as author_name from public.expert_columns c join public.profiles p on p.id=c.author_id`;

@@ -1,0 +1,20 @@
+{
+  "status": "PASS",
+  "appliedAt": "2026-11-15T04:01:24.856Z",
+  "migration": "00007_public_post_ids.sql",
+  "existingRowsPreserved": {
+    "posts": 2,
+    "replies": 0,
+    "post_bookmarks": 0,
+    "post_likes": 0,
+    "profiles": 4,
+    "expert_columns": 0
+  },
+  "fingerprintsUnchanged": true,
+  "rlsUnchanged": true,
+  "publicIds": {
+    "articles": 2,
+    "unique_ids": 2,
+    "missing": 0
+  }
+}

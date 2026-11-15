@@ -24,6 +24,9 @@ export function validateAuth(input, register) {
   return { email, password, name };
 }
 export function validPostId(id) {
+  return validColumnId(id);
+}
+export function validReplyCursor(id) {
   return typeof id === "string" && /^[1-9]\d{0,18}$/.test(id) && BigInt(id) <= 9223372036854775807n;
 }
 export function validColumnId(id) {

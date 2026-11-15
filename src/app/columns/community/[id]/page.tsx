@@ -8,6 +8,7 @@ import { CommunityHome } from "@/components/community/community-home";
 import { ArticleMarkdown } from "@/components/community/article-markdown";
 import { ArticleInteractions } from "@/components/community/article-interactions";
 import { ExpertColumnEditLink } from "@/components/columns/expert-column-edit-link";
+import { ArticleReadingLayout } from "@/components/community/article-reading-layout";
 import { createClient } from "@/lib/db/server";
 import { getColumn } from "@/lib/db/forum";
 import { getRegion } from "@/lib/expert-columns";
@@ -19,7 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 type Props = { params: Promise<{ id: string }> };
 export default function CommunityColumnPage({ params }: Props) {
-  return <CommunityHome view="columns"><Suspense fallback={<p role="status">載入在地專欄…</p>}><ColumnArticle params={params} /></Suspense></CommunityHome>;
+  return <CommunityHome view="article"><Suspense fallback={<p role="status">載入在地專欄…</p>}><ColumnArticle params={params} /></Suspense></CommunityHome>;
 }
 async function ColumnArticle({ params }: Props) {
   await connection();
@@ -27,11 +28,11 @@ async function ColumnArticle({ params }: Props) {
   const article = await readColumn(id);
   if (!article) notFound();
   const region = getRegion(article.regionCode);
-  return <article className="editorial-article expert-column-article">
+  return <ArticleReadingLayout title={article.title} body={article.body} author={article.author} category="在地種植專欄" location={region?`${region.county} · ${region.district}`:undefined}><article className="editorial-article expert-column-article">
     <Link className="text-link" href="/columns#expert-map"><ArrowLeft size={16} />返回在地達人地圖</Link>
     <header className="editorial-article-heading sage"><p className="eyebrow">LOCAL GROWING STORIES</p><h1>{article.title}</h1><p>{article.excerpt}</p><div className="expert-article-meta"><span>{article.author}</span>{region && <span><MapPin size={14} />{region.county} · {region.district}</span>}</div></header>
     <ArticleMarkdown body={article.body} font="sans" fontSize={16} />
     <div className="expert-article-actions"><ExpertColumnEditLink id={article.id} authorId={article.authorId} /></div>
     <ArticleInteractions kind="column" id={article.id} title={article.title} path={`/columns/community/${article.id}`} />
-  </article>;
+  </article></ArticleReadingLayout>;
 }

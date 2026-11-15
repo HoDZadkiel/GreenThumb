@@ -2,9 +2,22 @@
   "date": "2026-11-15",
   "timezone": "Asia/Taipei",
   "fixedIssues": ["F01", "F02"],
-  "validationScope": "local code and isolated regression; no self-hosted website",
-  "deploymentStatus": "not-deployed",
-  "productionBrowserVerification": "pending deployment",
+  "validationScope": "initial isolated code regression followed by deployed Vercel API and browser verification; no self-hosted website",
+  "deploymentStatus": "success",
+  "productionBrowserVerification": "PASS",
+  "initialCodeValidation": {
+    "deploymentStatusAtThatTime": "not-deployed",
+    "productionBrowserVerificationAtThatTime": "pending deployment"
+  },
+  "productionFollowUp": {
+    "commit": "5e42ad7fc9c803cd2236b75bcd04b9cb140be8ce",
+    "deploymentStatus": "success",
+    "report": "post-fix/README.md",
+    "apiRegression": { "passed": 53, "failed": 0 },
+    "browserChecks": { "passed": 29, "failed": 0 },
+    "fixedIssuesVerified": ["F01", "F02"],
+    "restoration": "PASS"
+  },
   "checks": {
     "sessionRegression": { "passed": 9, "failed": 0 },
     "portableAuthIntegration": { "passed": 5, "failed": 0 },

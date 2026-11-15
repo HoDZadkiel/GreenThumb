@@ -7,7 +7,7 @@ import { ArrowRight, ArrowUpRight, Bookmark, ChevronDown, ChevronRight, Flower2,
 
 import { topics } from "@/lib/community-content";
 import { getRegion } from "@/lib/expert-columns";
-import type { ForumPost } from "@/lib/trial-forum-client";
+import type { ForumPost, ForumPostSummary } from "@/lib/trial-forum-client";
 import { memberAction } from "@/lib/member-client";
 import { PostEditor } from "./post-editor";
 import { CommunitySessionContext, type ForumUser } from "./community-session";
@@ -15,14 +15,14 @@ import { MemberAccess } from "./member-access";
 import { useMemberSession } from './use-member-session';
 import { authClient } from "@/lib/auth/client";
 
-type Post = {id:string;title:string;excerpt:string;category:string;type:string;author:string;authorId:string;region:string;location:string;time:string;likes:number;replies:number;tags:string[];color:string;trial:ForumPost};
+type Post = {id:string;title:string;excerpt:string;category:string;type:string;author:string;authorId:string;region:string;location:string;time:string;likes:number;replies:number;tags:string[];color:string};
  type Mode = "about" | "login" | "profile";
- function toPostPreview(post:ForumPost):Post {
+ function toPostPreview(post:ForumPostSummary):Post {
   const regions:Record<string,string>={north:"北部",central:"中部",south:"南部",east:"東部",island:"離島",indoor:"室內",highland:"高山"};
   const types:Record<string,string>={question:"發問",share:"分享",guide:"教學"};
   const location = getRegion(post.regionCode ?? "");
-  return {id:post.id,title:post.title,excerpt:post.body,category:post.category,type:types[post.postType]??"討論",author:post.author,authorId:post.authorId,
-  region:regions[post.region??""]??"未指定",location:location?`${location.county} · ${location.district}`:regions[post.region??""]??"未指定",time:new Date(post.createdAt).toLocaleDateString("zh-TW"),likes:post.likeCount,replies:post.replyCount,tags:[post.category],color:"sage",trial:post};
+  return {id:post.id,title:post.title,excerpt:post.excerpt,category:post.category,type:types[post.postType]??"討論",author:post.author,authorId:post.authorId,
+  region:regions[post.region??""]??"未指定",location:location?`${location.county} · ${location.district}`:regions[post.region??""]??"未指定",time:new Date(post.createdAt).toLocaleDateString("zh-TW"),likes:post.likeCount,replies:post.replyCount,tags:[post.category],color:"sage"};
  }
 
 type CommunityView = "home" | "columns" | "discussions" | "article" | "write" | "expert-write";
@@ -39,7 +39,8 @@ export function CommunityHome({ view = "home", children, editId }: { view?: Comm
   const [mode, setMode] = useState<Mode>("about");
   const { user, auth: loginMethods, loading: loadingSession, error: sessionError, editorVersion, changeUser, refreshSession, isCurrentUser } = useMemberSession();
   const [loadingForum, setLoadingForum] = useState(true);
-  const [forumPosts, setForumPosts] = useState<ForumPost[]>([]);
+  const [forumPosts, setForumPosts] = useState<ForumPostSummary[]>([]);
+  const [editing, setEditing] = useState<ForumPost | null>(null);
   const [pending, setPending] = useState(false);
   const [forumError, setForumError] = useState("");
   const [nextCursor, setNextCursor] = useState<string | null>(null);
@@ -48,19 +49,20 @@ export function CommunityHome({ view = "home", children, editId }: { view?: Comm
   const visibleSaved = user && bookmarkOwner === user.id ? saved : [];
   const userId = user?.id;
   const loading = loadingForum || loadingSession;
-  const editing = forumPosts.find((post) => post.id === editId);
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     let active = true;
     fetch("/api/forum", { cache: "no-store" }).then(async (response) => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
-      if (editId && !data.posts.some((post: ForumPost) => post.id === editId)) {
+      let editedPost: ForumPost | null = null;
+      if (editId) {
         const editResponse = await fetch(`/api/forum?id=${encodeURIComponent(editId)}`, { cache: "no-store" });
         const editData = await editResponse.json();
-        if (editResponse.ok) data.posts.push(editData.post);
+        if (editResponse.ok) editedPost = editData.post;
       }
       if (!active) return;
+      setEditing(editedPost);
       setForumPosts(data.posts);
       setNextCursor(data.nextCursor);
       if (new URLSearchParams(window.location.search).has("auth_error")) setForumError("登入連結已失效，請重新登入。");
@@ -117,7 +119,7 @@ export function CommunityHome({ view = "home", children, editId }: { view?: Comm
       const response = await fetch(`/api/forum?cursor=${encodeURIComponent(nextCursor)}`, { cache: "no-store" });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
-      setForumPosts((current) => [...current, ...data.posts.filter((post: ForumPost) => !current.some((item) => item.id === post.id))]);
+      setForumPosts((current) => [...current, ...data.posts.filter((post: ForumPostSummary) => !current.some((item) => item.id === post.id))]);
       setNextCursor(data.nextCursor);
     } catch (error) { setForumError((error as Error).message); }
     finally { setPending(false); }
@@ -190,7 +192,7 @@ export function CommunityHome({ view = "home", children, editId }: { view?: Comm
               : editId && !user ? <div className="write-notice"><p>登入後可編輯自己的文章。</p><button className="primary-button" onClick={() => open("login")}>登入或註冊</button></div>
               : editId && (!editing || (user?.role === "member" && editing.authorId !== user?.id))
                 ? <p role="alert">找不到文章，或你沒有編輯權限。</p>
-                : <PostEditor key={editId ?? "new"} post={editing} canPublish={Boolean(user)} onRequireLogin={() => open("login")} onPublished={(post, warning) => {
+                : <PostEditor key={editId ?? "new"} post={editing ?? undefined} canPublish={Boolean(user)} onRequireLogin={() => open("login")} onPublished={(post, warning) => {
                   if(!user || !isCurrentUser(user.id))return;
                   setPublication({post,ownerId:user.id,version:editorVersion});
                   if (warning) setForumError(warning);

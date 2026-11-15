@@ -1,0 +1,17 @@
+{
+  "base": "https://greenthumb-eta.vercel.app",
+  "checkedAt": "2026-11-14T19:25:38.030Z",
+  "status": "PASS",
+  "checks": [
+    {
+      "member": 1,
+      "status": "PASS",
+      "name": "會員01兩類原草稿均保留，未被會員02覆寫"
+    },
+    {
+      "member": 2,
+      "status": "PASS",
+      "name": "會員02只有自己儲存的討論，沒有帶入會員01專欄"
+    }
+  ]
+}

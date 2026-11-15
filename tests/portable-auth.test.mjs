@@ -9,9 +9,10 @@ import { handleAuthRequest } from "../src/lib/auth/http.mjs";
 import { authAvailability } from "../src/lib/auth/config.mjs";
 import { smtpOptions, verificationMessage } from "../src/lib/auth/mail.mjs";
 import { withMemberDatabase } from "../src/lib/db/pool.mjs";
-import { currentUser, savePost, getPost, saveColumn } from "../src/lib/db/forum.ts";
+import { currentUser, savePost, getPost, saveColumn, listPosts, listMappedPosts } from "../src/lib/db/forum.ts";
 import { writeMemberData, readDraft, bookmarkIds } from "../src/lib/db/member-data.ts";
 import { articleTarget, interact, getInteractions } from "../src/lib/db/article-interactions.ts";
+import { consumeContentRead } from "../src/lib/content-guard.mjs";
 
 const baseURL = "http://localhost:3109";
 const env = { BETTER_AUTH_URL: baseURL, BETTER_AUTH_SECRET: "test-only-" + "x".repeat(48),
@@ -22,6 +23,7 @@ function poolFor(db) {
   let queue = Promise.resolve();
   return {
     options: {},
+    async query(text,args=[]) {const connection=await this.connect();try{return await connection.query(text,args);}finally{connection.release();}},
     async connect() {
       const previous = queue;
       let unlock;
@@ -44,7 +46,7 @@ async function fixture(t, legacy = false) {
     create table auth.users (id uuid primary key,raw_user_meta_data jsonb default '{}',email text,email_confirmed_at timestamptz,created_at timestamptz default now());
     create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('test.uid',true),'')::uuid $$;
     create role anon; create role authenticated; grant usage on schema auth to anon,authenticated;`);
-  for (const name of ["00001_init.sql", "00002_live_forum.sql", "00003_cloud_content.sql", "00004_article_interactions.sql", "00005_optional_post_location.sql", "00006_portable_auth.sql"]) {
+  for (const name of ["00001_init.sql", "00002_live_forum.sql", "00003_cloud_content.sql", "00004_article_interactions.sql", "00005_optional_post_location.sql", "00006_portable_auth.sql", "00007_public_post_ids.sql"]) {
     if (legacy && name === "00006_portable_auth.sql") {
       await db.query("insert into auth.users (id,email,email_confirmed_at) values ('11111111-1111-4111-8111-111111111111','legacy@example.test',now())");
       await db.query("insert into public.posts (board_id,author_id,title,body) values (1,'11111111-1111-4111-8111-111111111111','保留舊文章','原始內容')");
@@ -153,6 +155,8 @@ test("Google OAuth creates a portable member and preserves RLS across forum work
   const post = await savePost(aDB, aUser, { expectedUserId:a, title: "陽台經驗", body: "**植物**", category: "觀葉植物", images: [], regionCode: "63000030" });
   assert.equal(await readDraft(aDB, a, "discussion"), null);
   assert.ok(await getPost(guestDB, post.id));
+  assert.match(post.id,/^[0-9a-f-]{36}$/);
+  assert.equal(await getPost(guestDB,'1'),null);
   await assert.rejects(savePost(guestDB, null, { title: "訪客" }));
   await assert.rejects(savePost(bDB, bUser, { expectedUserId:b, id: post.id, title: "篡改", body: "內容", category: "觀葉植物", images: [] }));
   await writeMemberData(aDB, a, { expectedUserId:a, action: "bookmark", postId: post.id, saved: true });
@@ -276,5 +280,60 @@ test("migration preserves legacy member UUIDs and posts without Supabase Auth de
   assert.equal((await admin("select author_id from public.posts")).rows[0].author_id, id);
   const { rows } = await withMemberDatabase(pool, id, connection => connection.query("select id,body from public.posts"));
   assert.equal(rows[0].body, "原始內容");
+  const guestDB = {userId:null,query:(sql,args)=>withMemberDatabase(pool,null,connection=>connection.query(sql,args))};
+  const visible = await listPosts(guestDB);
+  assert.equal(visible.posts.length,1);
+  assert.notEqual(visible.posts[0].id,String(rows[0].id));
+  assert.equal((await getPost(guestDB,visible.posts[0].id)).body,'原始內容');
+  assert.equal(await getPost(guestDB,String(rows[0].id)),null);
+  assert.equal(visible.posts[0].body,undefined);
+  assert.equal(visible.posts[0].images,undefined);
   assert.equal((await admin("select to_regclass('auth.users') as users")).rows[0].users, null);
+});
+
+test('public post IDs preserve internal relationships, pagination and ownership without leaking full bodies',async t=>{
+  const {pool,admin}=await fixture(t);
+  const id='11111111-1111-4111-8111-111111111111';
+  await admin('insert into public.gt_user (id,name,email) values ($1,$2,$3)',[id,'測試作者','public-id@example.test']);
+  const member={userId:id,query:(sql,args)=>withMemberDatabase(pool,id,connection=>connection.query(sql,args))};
+  const guest={userId:null,query:(sql,args)=>withMemberDatabase(pool,null,connection=>connection.query(sql,args))};
+  const user=await currentUser(member);
+  const payload={expectedUserId:id,title:'公開識別碼',body:'正文'.repeat(200),category:'觀葉植物',images:[],regionCode:'63000030'};
+  const post=await savePost(member,user,payload);
+  const internal=(await member.query('select id,public_id from public.posts')).rows[0];
+  assert.notEqual(post.id,String(internal.id));
+  await assert.rejects(member.query('update public.posts set public_id=gen_random_uuid() where public_id=$1',[post.id]));
+  await assert.rejects(member.query('insert into public.posts (public_id,board_id,author_id,title,body) values ($1,1,$2,$3,$4)',[post.id,id,'指定識別碼','正文']));
+  await writeMemberData(member,id,{expectedUserId:id,action:'bookmark',postId:post.id,saved:true});
+  assert.deepEqual(await bookmarkIds(member),[post.id]);
+  await interact(member,user,articleTarget('post',post.id),{expectedUserId:id,action:'reply',body:'回覆保留內部關聯'});
+  assert.equal((await getInteractions(guest,null,articleTarget('post',post.id))).replyCount,1);
+  await savePost(member,user,{...payload,id:post.id,title:'修改同一篇'});
+  assert.equal((await getPost(guest,post.id)).title,'修改同一篇');
+  assert.equal((await listMappedPosts(guest)).pins[0].href,'/discussions/'+post.id);
+  await admin("insert into public.posts (board_id,author_id,title,body) select 1,$1,'分頁 '||n,'內容' from generate_series(1,51) n",[id]);
+  const first=await listPosts(guest),second=await listPosts(guest,first.nextCursor);
+  assert.equal(first.posts.length,50);assert.equal(second.posts.length,2);assert.equal(second.nextCursor,null);
+  assert.equal(new Set([...first.posts,...second.posts].map(p=>p.id)).size,52);
+  assert.ok(first.posts.every(p=>!('body' in p)&&!('public_id' in p)&&!/^\d+$/.test(p.id)));
+  assert.equal(second.posts.find(p=>p.id===post.id).excerpt.length,180);
+  await assert.rejects(listPosts(guest,'1'));
+  assert.throws(()=>articleTarget('post','1'));
+});
+
+test('content limits share atomic PostgreSQL counters, reset and clean only expired content records',async t=>{
+  const {pool,admin}=await fixture(t);
+  const now=1800000000010;
+  for(let n=0;n<90;n++)assert.equal((await consumeContentRead(pool,'reader-a','detail',now)).allowed,true);
+  assert.deepEqual(await consumeContentRead(pool,'reader-a','detail',now),{allowed:false,retryAfter:60});
+  assert.equal((await consumeContentRead({query:(...args)=>pool.query(...args)},'reader-a','detail',now)).allowed,false,'another instance shares the same budget');
+  assert.equal((await consumeContentRead(pool,'reader-b','detail',now)).allowed,true);
+  assert.equal((await consumeContentRead(pool,'reader-a','detail',now+60000)).allowed,true);
+  for(let n=0;n<30;n++)assert.equal((await consumeContentRead(pool,'reader-c','list',now)).allowed,true);
+  assert.equal((await consumeContentRead(pool,'reader-c','list',now)).allowed,false);
+  assert.equal((await consumeContentRead(pool,'reader-c','detail',now)).allowed,true);
+  await admin('insert into public.gt_rate_limit (key,count,"lastRequest") values ($1,1,$3),($2,1,$3)',['auth-counter','content:v1:all:expired',now-172800000]);
+  assert.equal((await consumeContentRead(pool,'reader-d','detail',now)).allowed,true);
+  assert.equal((await admin('select count(*)::int as n from public.gt_rate_limit where key=$1',['content:v1:all:expired'])).rows[0].n,0);
+  assert.equal((await admin('select count(*)::int as n from public.gt_rate_limit where key=$1',['auth-counter'])).rows[0].n,1);
 });
